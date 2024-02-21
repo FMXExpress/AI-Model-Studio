@@ -1,0 +1,91 @@
+object FrameItem: TFrameItem
+  Size.Width = 600.000000000000000000
+  Size.Height = 193.000000000000000000
+  Size.PlatformDefault = False
+  object Panel1: TPanel
+    Align = Client
+    Margins.Left = 5.000000000000000000
+    Margins.Top = 5.000000000000000000
+    Margins.Right = 5.000000000000000000
+    Margins.Bottom = 5.000000000000000000
+    Size.Width = 590.000000000000000000
+    Size.Height = 183.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    OnClick = Panel1Click
+    object TitleLabel: TLabel
+      Align = Top
+      AutoSize = True
+      StyledSettings = [Family, Style, FontColor]
+      Margins.Left = 20.000000000000000000
+      Margins.Right = 20.000000000000000000
+      Margins.Bottom = 5.000000000000000000
+      Position.X = 173.000000000000000000
+      Position.Y = 52.000000000000000000
+      Size.Width = 397.000000000000000000
+      Size.Height = 27.000000000000000000
+      Size.PlatformDefault = False
+      TextSettings.Font.Size = 20.000000000000000000
+      TextSettings.Trimming = None
+      Text = 'Generate Procedures'
+      TabOrder = 1
+    end
+    object Line1: TLine
+      Align = Top
+      HitTest = False
+      LineType = Top
+      Position.X = 153.000000000000000000
+      Position.Y = 84.000000000000000000
+      Size.Width = 437.000000000000000000
+      Size.Height = 11.000000000000000000
+      Size.PlatformDefault = False
+      Stroke.Color = claSteelblue
+    end
+    object DescriptionLabel: TLabel
+      Align = Client
+      AutoSize = True
+      Margins.Left = 20.000000000000000000
+      Margins.Top = 5.000000000000000000
+      Margins.Right = 20.000000000000000000
+      Margins.Bottom = 20.000000000000000000
+      Size.Width = 397.000000000000000000
+      Size.Height = 63.000000000000000000
+      Size.PlatformDefault = False
+      TextSettings.VertAlign = Leading
+      TextSettings.Trimming = None
+      Text = 'Generates code procedures by describing what it should do.'
+      TabOrder = 2
+    end
+    object EmojiLabel: TLabel
+      Align = Top
+      AutoSize = True
+      StyledSettings = [Family, Style, FontColor]
+      Margins.Left = 20.000000000000000000
+      Margins.Top = 20.000000000000000000
+      Margins.Right = 20.000000000000000000
+      Position.X = 173.000000000000000000
+      Position.Y = 20.000000000000000000
+      Size.Width = 397.000000000000000000
+      Size.Height = 32.000000000000000000
+      Size.PlatformDefault = False
+      TextSettings.Font.Size = 24.000000000000000000
+      TextSettings.Trimming = None
+      Text = #55358#56598
+      TabOrder = 0
+    end
+    object Layout1: TLayout
+      Align = MostLeft
+      Opacity = 0.500000000000000000
+      Size.Width = 153.000000000000000000
+      Size.Height = 183.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 4
+    end
+  end
+  object Timer: TTimer
+    Interval = 50
+    OnTimer = TimerTimer
+    Left = 137
+    Top = 137
+  end
+end
