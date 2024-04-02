@@ -50,7 +50,6 @@ type
     LoadButton: TButton;
     ToolBar1: TToolBar;
     FDStanStorageBinLink1: TFDStanStorageBinLink;
-    Button4: TButton;
     ModelClient: TRESTClient;
     ModelRequest: TRESTRequest;
     ModelResponse: TRESTResponse;
@@ -596,6 +595,7 @@ end;
 procedure TMainForm.Button1Click(Sender: TObject);
 begin
   RESTClient1.BaseURL := 'https://api.replicate.com/v1/models';
+  RESTRequest1.Params[0].Value := 'Token ' + APIKeyEdit.Text;
   RESTRequest1.Execute;
   LoadJsonIntoMemTable(FDMemTable1.FieldByName('results').AsWideString,ModelsMT);
 
@@ -837,6 +837,7 @@ begin
   if LocationSwitch.IsChecked=True then
   begin
     ModelClient.BaseURL := 'https://api.replicate.com/v1/predictions';
+    ModelRequest.Params[0].Value := 'Token ' + APIKeyEdit.Text;
   end
   else
   begin
@@ -983,6 +984,7 @@ begin
     if FDMemTable1.FieldByName('next').AsWideString<>'' then
     begin
       RESTClient1.BaseURL := FDMemTable1.FieldByName('next').AsWideString;
+      RESTRequest1.Params[0].Value := 'Token ' + APIKeyEdit.Text;
       RESTRequest1.Execute;
       LoadJsonIntoMemTable(FDMemTable1.FieldByName('results').AsWideString,ModelsMT);
     end

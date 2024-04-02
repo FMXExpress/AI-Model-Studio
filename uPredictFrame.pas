@@ -321,6 +321,8 @@ end;
 
 procedure TPredictFrame.LaunchTimerTimer(Sender: TObject);
 begin
+//  LaunchTimer.Enabled := False;
+  PredictRequest.Params[0].Value := 'Token ' + MainForm.APIKeyEdit.Text;
   PredictRequest.Execute;
 
   var F := PredictMT.FindField('status');

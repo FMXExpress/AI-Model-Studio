@@ -101,22 +101,12 @@ object PredictFrame: TPredictFrame
   object PredictRequest: TRESTRequest
     AssignedValues = [rvConnectTimeout, rvReadTimeout]
     Client = PredictClient
-    Method = rmPOST
     Params = <
       item
         Kind = pkHTTPHEADER
         Name = 'Authorization'
         Options = [poDoNotEncode]
         Value = 'Token '
-      end
-      item
-        Kind = pkREQUESTBODY
-        Name = 'body'
-        Value = 
-          '{"version": "fd0f02756ae5c3244cfb45c0603296e7418c07d1501bc6e9463' +
-          'ea2d215d5e38f", "input": {"prompt": "Self-portrait oil painting,' +
-          ' a beautiful cyborg with golden hair, 8k"}}'
-        ContentTypeStr = 'application/json'
       end>
     Response = PredictResponse
     SynchronizedEvents = False
