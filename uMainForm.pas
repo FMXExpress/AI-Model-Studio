@@ -15,7 +15,7 @@ uses
   Data.Bind.Controls, FMX.Layouts, Fmx.Bind.Navigator, Data.Bind.Grid,
   Data.Bind.DBScope, FMX.Edit, FireDAC.Stan.StorageJSON, FireDAC.Stan.StorageBin,
   System.Generics.Collections, FMX.TabControl, FMX.Memo.Types, FMX.Memo,
-  DosCommand, FMX.BufferedLayout, FMX.Objects, uPredictFrame;
+  DosCommand, FMX.BufferedLayout, FMX.Objects, uPredictFrame, FMX.ListBox;
 
 type
   TPropertyDetail = record
@@ -116,6 +116,16 @@ type
     PortEdit: TEdit;
     GPUCheckBox: TCheckBox;
     ModelPB: TProgressBar;
+    QueueMemTable: TFDMemTable;
+    TabItem4: TTabItem;
+    Memo2: TMemo;
+    Button4: TButton;
+    DockerTable: TFDMemTable;
+    StringGrid2: TStringGrid;
+    BindSourceDB3: TBindSourceDB;
+    LinkGridToDataSourceBindSourceDB3: TLinkGridToDataSource;
+    ListBox1: TListBox;
+    LinkFillControlToField1: TLinkFillControlToField;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
@@ -135,6 +145,8 @@ type
     procedure PredictTimerTimer(Sender: TObject);
     procedure LaunchTimerTimer(Sender: TObject);
     procedure LocationSwitchSwitch(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure Button4Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -148,6 +160,9 @@ type
     procedure LoadButtonOnClick(Sender: TObject);
     procedure CreatePropertyControls(const PropDetail: TPropertyDetail; ParentLayout: TVertScrollBox);
     procedure DosCommandTerminated(Sender: TObject);
+    function ExecuteCommandAndCaptureOutput(const CommandLine: string): string;
+    procedure ListRunningContainers;
+    procedure ParseDockerOutputToMemTable(const DockerOutput: string; DockerTable: TFDMemTable);
   end;
 
 var
@@ -596,8 +611,25 @@ procedure TMainForm.Button1Click(Sender: TObject);
 begin
   RESTClient1.BaseURL := 'https://api.replicate.com/v1/models';
   RESTRequest1.Params[0].Value := 'Token ' + APIKeyEdit.Text;
-  RESTRequest1.Execute;
-  LoadJsonIntoMemTable(FDMemTable1.FieldByName('results').AsWideString,ModelsMT);
+  //RESTRequest1.Execute;
+  //LoadJsonIntoMemTable(FDMemTable1.FieldByName('results').AsWideString,ModelsMT);
+
+  repeat
+    RESTRequest1.Execute;
+
+    if FDMemTable1.FieldByName('results').AsWideString <> '' then
+      LoadJsonIntoMemTable(FDMemTable1.FieldByName('results').AsWideString, ModelsMT);
+
+    if FDMemTable1.FieldByName('next').AsString <> '' then
+      RESTClient1.BaseURL := FDMemTable1.FieldByName('next').AsString
+    else
+      Break;
+
+    Memo1.Lines.Append(RESTClient1.BaseURL);
+
+    Application.ProcessMessages;
+
+  until False;
 
 end;
 
@@ -611,6 +643,106 @@ end;
 procedure TMainForm.Button3Click(Sender: TObject);
 begin
   Edit1.Text := 'docker run -d -p '+PortEdit.Text+':5000 --gpus=all r8.im/' + ModelsMT.FieldByName('owner').AsWideString+'/'+ModelsMT.FieldByName('name').AsWideString+'@sha256:'+GetIdFromJson(ModelsMT.FieldByName('latest_version').AsWideString);
+end;
+
+procedure TMainForm.ListRunningContainers;
+var
+  DC: TDosCommand;
+  Output: string;
+begin
+  DC := TDosCommand.Create(Self);
+  try
+    // Command to list running Docker containers
+    DC.CommandLine := 'docker ps';
+
+    // Capture the output of the command
+    Output := ExecuteCommandAndCaptureOutput(DC.CommandLine);
+
+    // Display the output in the memo (or handle it as needed)
+    Memo2.Lines.Append('Running Docker Containers:');
+    Memo2.Lines.Append(Output);
+    ParseDockerOutputToMemTable(Output, DockerTable);
+  finally
+    DC.Free;
+  end;
+end;
+
+
+procedure TMainForm.ParseDockerOutputToMemTable(const DockerOutput: string; DockerTable: TFDMemTable);
+var
+  OutputLines: TStringList;
+  HeaderLine, Line: string;
+  ContainerID, Image, Command, Created, Status, Ports, Names: string;
+  PosImage, PosCommand, PosCreated, PosStatus, PosPorts, PosNames: Integer;
+  i: Integer;
+begin
+  OutputLines := TStringList.Create;
+  try
+    // Split Docker output by lines
+    OutputLines.Text := DockerOutput;
+
+    // Ensure there is at least one line (header) and one container line
+    if OutputLines.Count > 1 then
+    begin
+      // Parse the header (first line) to determine the positions of each column
+      HeaderLine := OutputLines[0];
+
+      // Find the position of each column based on the header
+      PosImage := Pos('IMAGE', HeaderLine);
+      PosCommand := Pos('COMMAND', HeaderLine);
+      PosCreated := Pos('CREATED', HeaderLine);
+      PosStatus := Pos('STATUS', HeaderLine);
+      PosPorts := Pos('PORTS', HeaderLine);
+      PosNames := Pos('NAMES', HeaderLine);
+
+      // Setup the MemTable structure
+      DockerTable.Close;
+      DockerTable.FieldDefs.Clear;
+      DockerTable.FieldDefs.Add('CONTAINER_ID', TFieldType.ftString, 255);
+      DockerTable.FieldDefs.Add('IMAGE', TFieldType.ftString, 255);
+      DockerTable.FieldDefs.Add('COMMAND', TFieldType.ftString, 255);
+      DockerTable.FieldDefs.Add('CREATED', TFieldType.ftString, 255);
+      DockerTable.FieldDefs.Add('STATUS', TFieldType.ftString, 255);
+      DockerTable.FieldDefs.Add('PORTS', TFieldType.ftString, 255);
+      DockerTable.FieldDefs.Add('NAMES', TFieldType.ftString, 255);
+      DockerTable.CreateDataSet;
+
+      // Iterate over each container line (starting from the second line)
+      for i := 1 to OutputLines.Count - 1 do
+      begin
+        Line := Trim(OutputLines[i]);
+        if Trim(Line) = '' then Continue;
+
+        // Parse fields based on the positions identified from the header
+        ContainerID := Copy(Line, 1, PosImage - 1);
+        Image := Copy(Line, PosImage, PosCommand - PosImage);
+        Command := Copy(Line, PosCommand, PosCreated - PosCommand);
+        Created := Copy(Line, PosCreated, PosStatus - PosCreated);
+        Status := Copy(Line, PosStatus, PosPorts - PosStatus);
+        Ports := Copy(Line, PosPorts, PosNames - PosPorts);
+        Names := Copy(Line, PosNames, Length(Line) - PosNames + 1);
+
+        // Add a new row to the MemTable
+        DockerTable.Append;
+        DockerTable.FieldByName('CONTAINER_ID').AsString := Trim(ContainerID);
+        DockerTable.FieldByName('IMAGE').AsString := Trim(Image);
+        DockerTable.FieldByName('COMMAND').AsString := Trim(Command);
+        DockerTable.FieldByName('CREATED').AsString := Trim(Created);
+        DockerTable.FieldByName('STATUS').AsString := Trim(Status);
+        DockerTable.FieldByName('PORTS').AsString := Trim(Ports);
+        DockerTable.FieldByName('NAMES').AsString := Trim(Names);
+        DockerTable.Post;
+      end;
+    end;
+  finally
+    OutputLines.Free;
+  end;
+end;
+
+
+procedure TMainForm.Button4Click(Sender: TObject);
+begin
+  ListRunningContainers;
 end;
 
 procedure TMainForm.CreatePropertyControls(const PropDetail: TPropertyDetail; ParentLayout: TVertScrollBox);
@@ -826,6 +958,22 @@ begin
 AdjustFlowLayoutHeight(FlowLayout);
 end;
 
+procedure TMainForm.FormCreate(Sender: TObject);
+begin
+  var ApiKeyFile := 'c:\github\replicate.txt';
+  if TFile.Exists(ApiKeyFile) then
+  begin
+    var SL := TStringList.Create;
+    try
+      SL.LoadFromFile(ApiKeyFile);
+      APIKeyEdit.Text := SL.Text;
+    finally
+      SL.Free;
+    end;
+  end;
+
+end;
+
 procedure TMainForm.GenerateButtonClick(Sender: TObject);
 var
   JSONString: string;
@@ -1006,7 +1154,8 @@ end;
 
 procedure TMainForm.LoadButtonClick(Sender: TObject);
 begin
-  ModelsMT.LoadFromFile(ExtractFilePath(ParamStr(0)) + 'data.fds');
+//  if TFile.Exists(ExtractFilePath(ParamStr(0)) + 'data.fds') then
+    ModelsMT.LoadFromFile(ExtractFilePath(ParamStr(0)) + 'data.fds');
   ModelsMT.IndexesActive := True;
   ModelsLabel.Text := ModelsMT.RecordCount.ToString;
 
@@ -1028,6 +1177,19 @@ begin
 
   var DC := TDosCommand.Create(Self);
   try
+    DC.CommandLine := 'docker stop '+
+    ModelsMT.FieldByName('owner').AsWideString+
+    '_'+ModelsMT.FieldByName('name').AsWideString;
+
+    Memo1.Lines.Append(ExecuteCommandAndCaptureOutput(DC.CommandLine));
+
+
+    DC.CommandLine := 'docker rm '+
+    ModelsMT.FieldByName('owner').AsWideString+
+    '_'+ModelsMT.FieldByName('name').AsWideString;
+
+    Memo1.Lines.Append(ExecuteCommandAndCaptureOutput(DC.CommandLine));
+
     DC.CommandLine := 'docker run --name '+
     ModelsMT.FieldByName('owner').AsWideString+
     '_'+ModelsMT.FieldByName('name').AsWideString+
@@ -1045,9 +1207,78 @@ begin
 
     //DC.Execute;
 
-    ShellExecute(0, 'open', PChar('cmd.exe'), PChar('/C '+DC.CommandLine), nil, SW_SHOWNORMAL);
+    //ShellExecute(0, 'open', PChar('cmd.exe'), PChar('/C '+DC.CommandLine), nil, SW_SHOWNORMAL);
+
+    Memo1.Lines.Append(ExecuteCommandAndCaptureOutput(DC.CommandLine));
   except
     DC.Free;
+  end;
+end;
+
+function TMainForm.ExecuteCommandAndCaptureOutput(const CommandLine: string): string;
+var
+  SecurityAttributes: TSecurityAttributes;
+  StartupInfo: TStartupInfo;
+  ProcessInfo: TProcessInformation;
+  ReadPipe, WritePipe: THandle;
+  BytesRead: DWORD;
+  Buffer: array[0..255] of AnsiChar;
+  OutputString: string;
+begin
+  Result := '';
+
+  // Initialize security attributes for pipe
+  FillChar(SecurityAttributes, SizeOf(SecurityAttributes), 0);
+  SecurityAttributes.nLength := SizeOf(SecurityAttributes);
+  SecurityAttributes.bInheritHandle := True;
+
+  // Create pipe for capturing output
+  if not CreatePipe(ReadPipe, WritePipe, @SecurityAttributes, 0) then
+    raise Exception.Create('Failed to create pipe');
+
+  try
+    // Initialize startup info
+    FillChar(StartupInfo, SizeOf(StartupInfo), 0);
+    StartupInfo.cb := SizeOf(StartupInfo);
+    StartupInfo.dwFlags := STARTF_USESHOWWINDOW or STARTF_USESTDHANDLES;
+    StartupInfo.wShowWindow := SW_HIDE;
+    StartupInfo.hStdOutput := WritePipe;
+    StartupInfo.hStdError := WritePipe;
+
+    // Create process
+    if CreateProcess(nil, PChar('cmd.exe /C ' + CommandLine), nil, nil, True,
+                     CREATE_NO_WINDOW, nil, nil, StartupInfo, ProcessInfo) then
+    begin
+      // Close write pipe handle
+      CloseHandle(WritePipe);
+
+      // Read output
+      OutputString := '';
+      repeat
+        BytesRead := 0;
+        if ReadFile(ReadPipe, Buffer, SizeOf(Buffer) - 1, BytesRead, nil) then
+        begin
+          if BytesRead > 0 then
+          begin
+            Buffer[BytesRead] := #0; // Null terminate the string
+            OutputString := OutputString + string(Buffer);
+          end;
+        end;
+      until (BytesRead = 0);
+
+      // Wait for process to finish
+      WaitForSingleObject(ProcessInfo.hProcess, INFINITE);
+
+      // Close process handles
+      CloseHandle(ProcessInfo.hProcess);
+      CloseHandle(ProcessInfo.hThread);
+
+      Result := OutputString;
+    end
+    else
+      raise Exception.Create('Failed to create process');
+  finally
+    CloseHandle(ReadPipe);
   end;
 end;
 

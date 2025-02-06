@@ -117,6 +117,7 @@ object PredictFrame: TPredictFrame
     Dataset = PredictMT
     FieldDefs = <>
     Response = PredictResponse
+    TypesMode = JSONOnly
     StringFieldSize = 10000000
     Left = 118
     Top = 144

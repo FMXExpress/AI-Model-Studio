@@ -1,262 +1,289 @@
 ﻿[RESTClient1]
-Coordinates=268,10,76,69
+Coordinates=268,10,89,80
 
 [Button1]
-Coordinates=10,386,53,51
+Coordinates=10,386,59,58
 
 [FDMemTable1]
-Coordinates=480,30,84,33
+Coordinates=480,30,99,36
 Visible=False
 
 [RESTResponse1]
-Coordinates=10,10,96,303
+Coordinates=10,10,113,366
 
 [MultiView1]
-Coordinates=188,386,67,33
+Coordinates=188,386,77,36
 
 [RESTRequest1]
-Coordinates=133,10,104,105
+Coordinates=133,10,125,124
 
 [StringGrid1]
-Coordinates=367,10,70,51
+Coordinates=367,10,80,58
 Visible=True
 
 [RESTResponseDataSetAdapter1]
-Coordinates=276,111,174,33
+Coordinates=276,111,205,36
 
 []
 Coordinates=125,223,53,51
 Visible=True
 
 [BindSourceDB1]
-Coordinates=590,30,92,69
+Coordinates=590,30,106,80
 
 [BindingsList1]
-Coordinates=142,153,82,33
+Coordinates=142,153,91,36
 
 [BindSourceDB2]
-Coordinates=470,10,92,303
+Coordinates=470,10,106,358
 
 [Button2]
-Coordinates=125,293,53,51
+Coordinates=125,293,59,58
 
 [Edit1]
-Coordinates=76,332,40,51
+Coordinates=76,332,44,58
 
 [SaveButton]
-Coordinates=275,233,71,51
+Coordinates=275,233,81,58
 
 [FDStanStorageBinLink1]
-Coordinates=275,373,132,33
+Coordinates=275,373,152,36
 
 [ToolBar1]
-Coordinates=256,421,58,33
+Coordinates=256,421,67,36
 
 [Button3]
-Coordinates=17,332,53,51
+Coordinates=17,332,59,58
 
 [LoadButton]
-Coordinates=275,303,72,51
+Coordinates=275,303,80,58
 
 [ModelsMT]
-Coordinates=470,10,64,33
+Coordinates=470,10,74,36
 Visible=False
 
 [ModelResponseMT]
-Coordinates=445,332,108,51
+Coordinates=445,332,125,124
 
 [SearchButton]
-Coordinates=513,727,81,51
+Coordinates=513,727,92,58
 
 [Label4]
-Coordinates=37,70,46,51
+Coordinates=37,70,53,58
 
 [Splitter2]
-Coordinates=119,762,55,33
+Coordinates=119,762,62,36
 
 [Label1]
-Coordinates=235,531,46,51
+Coordinates=235,531,53,58
 
 [GenerateButton]
-Coordinates=627,118,92,51
+Coordinates=627,118,105,58
 
 [Layout2]
-Coordinates=60,762,53,33
+Coordinates=60,762,60,36
 
 [APIKeyEdit]
-Coordinates=177,673,69,51
+Coordinates=177,673,80,58
 
 [ModelsLabel]
-Coordinates=513,402,76,51
+Coordinates=513,402,87,58
 
 [TabItem2]
-Coordinates=0,729,59,33
+Coordinates=0,729,69,36
 
 [MaterialOxfordBlueSB]
-Coordinates=720,1,123,33
+Coordinates=720,1,142,36
 
 [StatusBar1]
-Coordinates=632,258,68,33
+Coordinates=632,258,78,36
 
 [PredictClient]
-Coordinates=340,1,77,69
+Coordinates=340,1,88,80
 
 [Line1]
-Coordinates=632,310,41,33
+Coordinates=632,310,46,36
 
 [ModelStatusTimer]
-Coordinates=720,110,103,33
+Coordinates=720,110,119,36
 
 [APIKeyButton]
-Coordinates=340,495,83,51
+Coordinates=340,495,94,58
 
 [Line2]
-Coordinates=632,362,41,33
+Coordinates=632,362,46,36
 
 [Panel1]
-Coordinates=632,414,47,33
+Coordinates=632,414,55,36
 
 [GPUCheckBox]
-Coordinates=627,188,87,51
+Coordinates=627,188,100,58
 
 [PredictTimer]
-Coordinates=340,565,77,33
+Coordinates=340,565,88,36
 
 [ModelLoadTimer]
-Coordinates=627,466,96,33
+Coordinates=627,466,111,36
 
 [OutputLayout]
-Coordinates=720,162,81,33
+Coordinates=720,162,92,36
 
 [OpenDialog]
-Coordinates=632,518,72,33
+Coordinates=632,518,82,36
 
 [ModelClient]
-Coordinates=275,601,72,69
+Coordinates=275,601,83,80
 
 [DosCommand]
-Coordinates=720,214,84,33
+Coordinates=720,214,96,36
 
 [TabItem3]
-Coordinates=632,570,59,33
+Coordinates=632,570,69,36
 
 [LocationSwitch]
-Coordinates=385,425,90,51
+Coordinates=385,425,101,58
 
 [ModelsPB]
-Coordinates=235,461,64,51
+Coordinates=235,461,73,58
 
 [Memo1]
-Coordinates=385,89,49,51
+Coordinates=385,89,57,58
 
 [PredictRequest]
-Coordinates=198,319,104,123
+Coordinates=198,319,125,146
 
 [ModelTabItem]
-Coordinates=720,266,83,33
+Coordinates=720,266,97,36
 
 [DescriptionLabel]
-Coordinates=346,673,97,51
+Coordinates=346,673,111,58
 
 [InnerInputLayout]
-Coordinates=627,622,98,33
+Coordinates=627,622,111,36
 
 [ImageQueueMT]
-Coordinates=198,71,91,87
+Coordinates=198,71,107,102
 
 [SearchEdit]
-Coordinates=30,332,68,51
+Coordinates=30,332,77,58
 
 [TabItem1]
-Coordinates=632,674,59,33
+Coordinates=632,674,69,36
 
 [XrayMemo]
-Coordinates=108,673,66,51
+Coordinates=108,673,76,58
 
 [LaunchTimer]
-Coordinates=720,318,79,33
+Coordinates=720,318,89,36
 
 [PredictQueueMT]
-Coordinates=445,495,96,213
+Coordinates=445,495,111,256
 
 [ModelDSA]
-Coordinates=632,726,65,33
+Coordinates=632,726,76,36
 
 [ImageQueueTimer]
-Coordinates=720,370,104,33
+Coordinates=720,370,121,36
 
 [Splitter1]
-Coordinates=632,778,55,33
+Coordinates=632,778,62,36
 
 [RunButton]
-Coordinates=0,0,67,51
+Coordinates=0,0,75,58
 
 [InitializeButton]
-Coordinates=198,1,88,51
+Coordinates=198,1,99,58
 
 [ProgressBar]
-Coordinates=434,762,76,51
+Coordinates=434,762,86,58
 
 [ModelPB]
-Coordinates=375,762,58,51
+Coordinates=375,762,66,58
 
 [Layout4]
-Coordinates=632,830,53,33
+Coordinates=632,830,60,36
 
 [InputLayout]
-Coordinates=553,851,73,33
+Coordinates=553,851,82,36
 
 [Progresstimer]
-Coordinates=720,422,84,33
+Coordinates=720,422,95,36
 
 [ModelRequest]
-Coordinates=198,177,104,123
+Coordinates=198,177,125,146
 
 [EmojiLabel]
-Coordinates=29,673,69,51
+Coordinates=29,673,78,58
 
 [PredictResponse]
-Coordinates=99,332,98,303
+Coordinates=99,332,112,366
 
 [PredictDSA]
-Coordinates=474,851,70,33
+Coordinates=474,851,81,36
 
 [Line3]
-Coordinates=425,851,41,33
+Coordinates=425,851,46,36
 
 [PredictMT]
-Coordinates=237,762,64,51
+Coordinates=237,762,73,58
 
 [TabControl1]
-Coordinates=346,851,74,33
+Coordinates=346,851,85,36
 
 [PortEdit]
-Coordinates=178,762,54,51
+Coordinates=178,762,61,58
 
 [Layout3]
-Coordinates=287,851,53,33
+Coordinates=287,851,60,36
 
 [Layout1]
-Coordinates=228,851,53,33
+Coordinates=228,851,60,36
 
 [FlowLayout]
-Coordinates=149,851,71,33
+Coordinates=149,851,80,36
 
 [Label3]
-Coordinates=256,673,46,51
+Coordinates=256,673,53,58
 
 [ModelResponse]
-Coordinates=86,1,93,303
+Coordinates=86,1,107,366
 
 [CardsVSB]
-Coordinates=80,851,64,33
+Coordinates=80,851,74,36
 
 [Label2]
-Coordinates=385,159,46,51
+Coordinates=385,159,53,58
 
 [TitleLabel]
-Coordinates=306,762,62,51
+Coordinates=306,762,71,58
 
 [Layout5]
-Coordinates=21,851,53,33
+Coordinates=21,851,60,36
+
+[QueueMemTable]
+Coordinates=0,0,113,278
+
+[DockerTable]
+Coordinates=1027,210,87,36
+Visible=True
+
+[StringGrid2]
+Coordinates=870,260,80,58
+Visible=True
+
+[Memo2]
+Coordinates=673,885,57,58
+
+[Button4]
+Coordinates=361,236,59,58
+
+[TabItem4]
+Coordinates=361,620,69,36
+
+[BindSourceDB3]
+Coordinates=930,200,106,234
+
+[ListBox1]
+Coordinates=779,477,139,212
+Visible=True
 

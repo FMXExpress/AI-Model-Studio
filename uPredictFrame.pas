@@ -283,7 +283,7 @@ begin
 
         LResponseStream.Free;
       end
-      else if ((LFileExt='mp4')) then
+      else if ((LFileExt='mp4') OR (LFileExt='wav') OR (LFileExt='mp3') OR (LFileExt='ogg') OR (LFileExt='flv') OR (LFileExt='m4a')) then
       begin
         var WB := TWebBrowser.Create(Self);
         WB.Parent := VSB;
