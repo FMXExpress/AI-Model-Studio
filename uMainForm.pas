@@ -15,7 +15,7 @@ uses
   Data.Bind.Controls, FMX.Layouts, Fmx.Bind.Navigator, Data.Bind.Grid,
   Data.Bind.DBScope, FMX.Edit, FireDAC.Stan.StorageJSON, FireDAC.Stan.StorageBin,
   System.Generics.Collections, FMX.TabControl, FMX.Memo.Types, FMX.Memo,
-  DosCommand, FMX.BufferedLayout, FMX.Objects, uPredictFrame, FMX.ListBox;
+  FMX.BufferedLayout, FMX.Objects, uPredictFrame, FMX.ListBox;
 
 type
   TPropertyDetail = record
@@ -65,7 +65,6 @@ type
     ModelStatusTimer: TTimer;
     StatusBar1: TStatusBar;
     ProgressBar: TProgressBar;
-    DosCommand: TDosCommand;
     Memo1: TMemo;
     Splitter1: TSplitter;
     TabItem3: TTabItem;
@@ -134,8 +133,6 @@ type
     procedure SearchButtonClick(Sender: TObject);
     procedure ModelLoadTimerTimer(Sender: TObject);
     procedure RunButtonClick(Sender: TObject);
-    procedure DosCommandNewLine(ASender: TObject; const ANewLine: string;
-      AOutputType: TOutputType);
     procedure FlowLayoutResized(Sender: TObject);
     procedure InitializeButtonClick(Sender: TObject);
     procedure GenerateButtonClick(Sender: TObject);
@@ -159,8 +156,6 @@ type
     procedure LoadModel(AModelUrl: String);
     procedure LoadButtonOnClick(Sender: TObject);
     procedure CreatePropertyControls(const PropDetail: TPropertyDetail; ParentLayout: TVertScrollBox);
-    procedure DosCommandTerminated(Sender: TObject);
-    function ExecuteCommandAndCaptureOutput(const CommandLine: string): string;
     procedure ListRunningContainers;
     procedure ParseDockerOutputToMemTable(const DockerOutput: string; DockerTable: TFDMemTable);
   end;
@@ -173,7 +168,164 @@ implementation
 {$R *.fmx}
 
 uses
-  uItemFrame, System.Threading, System.NetEncoding, System.Net.Mime, System.Math, System.JSON, ShellAPI, Windows, System.IOUtils;
+  {$IFDEF MSWINDOWS}
+  ShellAPI,
+  Windows,
+  {$ENDIF MSWINDOWS}
+  {$IFDEF POSIX}
+  Posix.Base,
+  Posix.Fcntl,
+  Posix.Stdio,
+  Posix.Stdlib,
+  {$ENDIF POSIX}
+  System.Threading,
+  System.NetEncoding,
+  System.Net.Mime,
+  System.Math,
+  System.JSON,
+  System.IOUtils,
+  uItemFrame;
+
+type
+  TStreamHandle = pointer;
+
+{$IFDEF MSWINDOWS}
+function RunCommand(const ACmd: string): string;
+var
+  LStartupInfo: TStartupInfo;
+  LProcessInfo: TProcessInformation;
+  LSecurityAttributes: TSecurityAttributes;
+  LReadPipe, LWritePipe: THandle;
+  LBuffer: TBytes;
+  LBytesRead: Cardinal;
+  LCmd: string;
+begin
+  Result := String.Empty;
+
+  // Set up security attributes to allow inheriting handles
+  FillChar(LSecurityAttributes, SizeOf(LSecurityAttributes), 0);
+  LSecurityAttributes.nLength := SizeOf(LSecurityAttributes);
+  LSecurityAttributes.bInheritHandle := True;
+
+  // Create pipes for standard output redirection
+  if not CreatePipe(LReadPipe, LWritePipe, @LSecurityAttributes, 0) then
+    raise Exception.Create('Failed to create pipe');
+
+  try
+    // Ensure the write end of the pipe is not inherited
+    if not SetHandleInformation(LReadPipe, HANDLE_FLAG_INHERIT, 0) then
+      raise Exception.Create('Failed to set handle information');
+
+    FillChar(LStartupInfo, SizeOf(LStartupInfo), 0);
+    LStartupInfo.cb := SizeOf(LStartupInfo);
+    LStartupInfo.hStdOutput := LWritePipe;
+    LStartupInfo.hStdError := LWritePipe;
+    LStartupInfo.dwFlags := STARTF_USESTDHANDLES or STARTF_USESHOWWINDOW;
+    LStartupInfo.wShowWindow := SW_HIDE;
+
+    FillChar(LProcessInfo, SizeOf(LProcessInfo), 0);
+
+    LCmd := 'cmd.exe /C ' + ACmd;
+    UniqueString(LCmd);
+
+    if not CreateProcess(
+      nil,
+      PChar(LCmd),
+      nil,
+      nil,
+      True, // Inherit handles
+      0,
+      nil,
+      nil,
+      LStartupInfo,
+      LProcessInfo
+    ) then
+      raise Exception.Create('Failed to create process.');
+
+    CloseHandle(LWritePipe); // Close the write end in the parent process
+
+    // Read the output from the pipe
+    try
+      SetLength(LBuffer, 4096);
+      while True do
+      begin
+        if not ReadFile(LReadPipe, LBuffer[0], Length(LBuffer), LBytesRead, nil) or (LBytesRead = 0) then
+          Break;
+
+        Result := Result
+          + TEncoding.UTF8.GetString(LBuffer, 0, Integer(LBytesRead));
+      end;
+    finally
+      // Wait for the process to finish and clean up
+      WaitForSingleObject(LProcessInfo.hProcess, INFINITE);
+      CloseHandle(LProcessInfo.hProcess);
+      CloseHandle(LProcessInfo.hThread);
+    end;
+  finally
+    CloseHandle(LReadPipe);
+  end;
+end;
+
+procedure OpenCmd(const ACmd: string);
+begin
+  ShellExecute(0, 'open', PChar(ACmd), nil, nil, SW_SHOWNORMAL);
+end;
+{$ENDIF MSWINDOWS}
+
+{$IFDEF POSIX}
+function popen(const command: MarshaledAString;
+  const _type: MarshaledAString): TStreamHandle;
+  cdecl; external libc name _PU + 'popen';
+
+function pclose(filehandle: TStreamHandle): int32;
+  cdecl; external libc name _PU + 'pclose';
+
+function fgets(buffer: pointer; size: int32; Stream: TStreamHAndle): pointer;
+  cdecl; external libc name _PU + 'fgets';
+
+function BufferToString(const ABuffer: pointer; AMaxSize: UInt32): string;
+var
+  LCursor: ^uint8;
+  LEndOfBuffer: nativeuint;
+begin
+  Result := '';
+
+  if not Assigned(ABuffer) then
+    Exit;
+
+  LCursor := ABuffer;
+  LEndOfBuffer := NativeUint(LCursor) + AMaxSize;
+  while (NativeUInt(LCursor) < LEndOfBuffer) and (LCursor^ <> 0) do begin
+    Result := Result + chr(LCursor^);
+    LCursor := pointer(Succ(NativeUInt(LCursor)));
+  end;
+end;
+
+function RunCommand(const ACmd: string): string;
+var
+  LHandle: TStreamHandle;
+  LData: array[0..511] of uint8;
+  LMarshaller: TMarshaller;
+begin
+  Result := String.Empty;
+
+  LHandle := popen(LMarshaller.AsAnsi(ACmd).ToPointer(), 'r');
+  try
+    while fgets(@LData[0], SizeOf(LData), LHandle)<>nil do begin
+      Result := Result + BufferToString(@LData[0], SizeOf(LData));
+    end;
+  finally
+    pclose(LHandle);
+  end;
+end;
+
+procedure OpenCmd(const ACmd: string);
+var
+  LMarshaller: TMarshaller;
+begin
+  _system(LMarshaller.AsAnsi('open ' + ACmd).ToPointer());
+end;
+{$ENDIF POSIX}
 
 constructor TPropertyDetail.Create(const AName, ADataType, ATitle, ADescription, ADefault: string);
 begin
@@ -646,25 +798,14 @@ begin
 end;
 
 procedure TMainForm.ListRunningContainers;
-var
-  DC: TDosCommand;
-  Output: string;
 begin
-  DC := TDosCommand.Create(Self);
-  try
-    // Command to list running Docker containers
-    DC.CommandLine := 'docker ps';
+  var LCmd := 'docker ps';
+  var LOutput := RunCommand(LCmd);
 
-    // Capture the output of the command
-    Output := ExecuteCommandAndCaptureOutput(DC.CommandLine);
-
-    // Display the output in the memo (or handle it as needed)
-    Memo2.Lines.Append('Running Docker Containers:');
-    Memo2.Lines.Append(Output);
-    ParseDockerOutputToMemTable(Output, DockerTable);
-  finally
-    DC.Free;
-  end;
+  // Display the output in the memo (or handle it as needed)
+  Memo2.Lines.Append('Running Docker Containers:');
+  Memo2.Lines.Append(LOutput);
+  ParseDockerOutputToMemTable(LOutput, DockerTable);
 end;
 
 
@@ -947,11 +1088,11 @@ begin
 
 end;
 
-procedure TMainForm.DosCommandNewLine(ASender: TObject; const ANewLine: string;
-  AOutputType: TOutputType);
-begin
-    Memo1.Lines.Append(ANewLine);
-end;
+//procedure TMainForm.DosCommandNewLine(ASender: TObject; const ANewLine: string;
+//  AOutputType: TOutputType);
+//begin
+//    Memo1.Lines.Append(ANewLine);
+//end;
 
 procedure TMainForm.FlowLayoutResized(Sender: TObject);
 begin
@@ -1093,16 +1234,17 @@ end;
 
 procedure TMainForm.InitializeButtonClick(Sender: TObject);
 begin
-  //ShellExecute(0, 'open', PChar('cmd.exe'), PChar('/C start /MIN "C:\Program Files\Docker\Docker\Docker Desktop.exe"'), nil, SW_SHOWNORMAL);
+  RunCommand('docker desktop start');
 
- // DosCommand.CommandLine := '"C:\Program Files\Docker\Docker\Docker Desktop.exe"';
- // DosCommand.Execute;
-  ShellExecute(0, 'open', PChar('"C:\Program Files\Docker\Docker\Docker Desktop.exe"'), nil, nil, SW_SHOWNORMAL);
+  //var APort := '5100';
+  var LCmd := 'docker pull r8.im/' +
+    ModelsMT.FieldByName('owner').AsWideString +
+    '/' +
+    ModelsMT.FieldByName('name').AsWideString +
+    '@sha256:' +
+    GetIdFromJson(ModelsMT.FieldByName('latest_version').AsWideString);
 
-  var APort := '5100';
-  DosCommand.CommandLine := 'docker pull r8.im/' + ModelsMT.FieldByName('owner').AsWideString+'/'+ModelsMT.FieldByName('name').AsWideString+'@sha256:'+GetIdFromJson(ModelsMT.FieldByName('latest_version').AsWideString);
-  //DosCommand.Execute;
-  ShellExecute(0, 'open', PChar('cmd.exe'), PChar('/C '+DosCommand.CommandLine), nil, SW_SHOWNORMAL);
+  RunCommand('cmd.exe /C ' + LCmd);
 end;
 
 procedure TMainForm.SaveClick(Sender: TObject);
@@ -1115,7 +1257,13 @@ begin
   TabControl1.ActiveTab := TabItem3;
 
   ModelsMT.Filtered := False;
-  ModelsMT.Filter := 'Name LIKE ''%'+SearchEdit.Text+'%'' OR Description LIKE ''%'+SearchEdit.Text+'%'' OR Owner LIKE ''%'+SearchEdit.Text+'%''';
+  ModelsMT.Filter := 'Name LIKE ''%' +
+    SearchEdit.Text +
+    '%'' OR Description LIKE ''%' +
+    SearchEdit.Text +
+    '%'' OR Owner LIKE ''%' +
+    SearchEdit.Text +
+    '%''';
   ModelsMT.Filtered := True;
 
   for var I := FlowLayout.ChildrenCount - 1 downto 0 do
@@ -1126,7 +1274,7 @@ end;
 
 procedure TMainForm.ModelLoadTimerTimer(Sender: TObject);
 begin
-  if FModelsBusy=False then
+  if FModelsBusy = False then
   begin
     FModelsBusy := True;
     if FDMemTable1.FieldByName('next').AsWideString<>'' then
@@ -1134,7 +1282,8 @@ begin
       RESTClient1.BaseURL := FDMemTable1.FieldByName('next').AsWideString;
       RESTRequest1.Params[0].Value := 'Token ' + APIKeyEdit.Text;
       RESTRequest1.Execute;
-      LoadJsonIntoMemTable(FDMemTable1.FieldByName('results').AsWideString,ModelsMT);
+      LoadJsonIntoMemTable(
+        FDMemTable1.FieldByName('results').AsWideString,ModelsMT);
     end
     else
     begin
@@ -1154,132 +1303,51 @@ end;
 
 procedure TMainForm.LoadButtonClick(Sender: TObject);
 begin
-//  if TFile.Exists(ExtractFilePath(ParamStr(0)) + 'data.fds') then
+  if TFile.Exists(ExtractFilePath(ParamStr(0)) + 'data.fds') then
     ModelsMT.LoadFromFile(ExtractFilePath(ParamStr(0)) + 'data.fds');
+
   ModelsMT.IndexesActive := True;
   ModelsLabel.Text := ModelsMT.RecordCount.ToString;
 
   Restore(False);
 end;
 
-procedure TMainForm.DosCommandTerminated(Sender: TObject);
-begin
-  (Sender as TDosCommand).Free;
-end;
-
 procedure TMainForm.RunButtonClick(Sender: TObject);
-var
-  LPort, LGPU, JSONString: string;
 begin
-  LPort := PortEdit.Text;
+  var LPort := PortEdit.Text;
+  var LGPU := String.Empty;
+
   if GPUCheckBox.IsChecked then
     LGPU := '--gpus=all ';
 
-  var DC := TDosCommand.Create(Self);
-  try
-    DC.CommandLine := 'docker stop '+
-    ModelsMT.FieldByName('owner').AsWideString+
-    '_'+ModelsMT.FieldByName('name').AsWideString;
+  var LCmd := 'docker stop '+
+  ModelsMT.FieldByName('owner').AsWideString+
+  '_'+ModelsMT.FieldByName('name').AsWideString;
 
-    Memo1.Lines.Append(ExecuteCommandAndCaptureOutput(DC.CommandLine));
+  Memo1.Lines.Append(RunCommand(LCmd));
 
+  LCmd := 'docker rm '+
+  ModelsMT.FieldByName('owner').AsWideString+
+  '_'+ModelsMT.FieldByName('name').AsWideString;
 
-    DC.CommandLine := 'docker rm '+
-    ModelsMT.FieldByName('owner').AsWideString+
-    '_'+ModelsMT.FieldByName('name').AsWideString;
+  Memo1.Lines.Append(RunCommand(LCmd));
 
-    Memo1.Lines.Append(ExecuteCommandAndCaptureOutput(DC.CommandLine));
-
-    DC.CommandLine := 'docker run --name '+
-    ModelsMT.FieldByName('owner').AsWideString+
-    '_'+ModelsMT.FieldByName('name').AsWideString+
-    ' -d -p '+
-    LPort+':5000 '+
-    LGPU+
+  LCmd := 'docker run --name ' +
+    ModelsMT.FieldByName('owner').AsWideString +
+    '_' +
+    ModelsMT.FieldByName('name').AsWideString +
+    ' -d -p ' +
+    LPort +
+    ':5000 ' +
+    LGPU +
     'r8.im/' +
-    ModelsMT.FieldByName('owner').AsWideString+
-    '/'+
-    ModelsMT.FieldByName('name').AsWideString+
-    '@sha256:'+
+    ModelsMT.FieldByName('owner').AsWideString +
+    '/' +
+    ModelsMT.FieldByName('name').AsWideString +
+    '@sha256:' +
     GetIdFromJson(ModelsMT.FieldByName('latest_version').AsWideString);
 
-    DC.OnTerminated := DosCommandTerminated;
-
-    //DC.Execute;
-
-    //ShellExecute(0, 'open', PChar('cmd.exe'), PChar('/C '+DC.CommandLine), nil, SW_SHOWNORMAL);
-
-    Memo1.Lines.Append(ExecuteCommandAndCaptureOutput(DC.CommandLine));
-  except
-    DC.Free;
-  end;
-end;
-
-function TMainForm.ExecuteCommandAndCaptureOutput(const CommandLine: string): string;
-var
-  SecurityAttributes: TSecurityAttributes;
-  StartupInfo: TStartupInfo;
-  ProcessInfo: TProcessInformation;
-  ReadPipe, WritePipe: THandle;
-  BytesRead: DWORD;
-  Buffer: array[0..255] of AnsiChar;
-  OutputString: string;
-begin
-  Result := '';
-
-  // Initialize security attributes for pipe
-  FillChar(SecurityAttributes, SizeOf(SecurityAttributes), 0);
-  SecurityAttributes.nLength := SizeOf(SecurityAttributes);
-  SecurityAttributes.bInheritHandle := True;
-
-  // Create pipe for capturing output
-  if not CreatePipe(ReadPipe, WritePipe, @SecurityAttributes, 0) then
-    raise Exception.Create('Failed to create pipe');
-
-  try
-    // Initialize startup info
-    FillChar(StartupInfo, SizeOf(StartupInfo), 0);
-    StartupInfo.cb := SizeOf(StartupInfo);
-    StartupInfo.dwFlags := STARTF_USESHOWWINDOW or STARTF_USESTDHANDLES;
-    StartupInfo.wShowWindow := SW_HIDE;
-    StartupInfo.hStdOutput := WritePipe;
-    StartupInfo.hStdError := WritePipe;
-
-    // Create process
-    if CreateProcess(nil, PChar('cmd.exe /C ' + CommandLine), nil, nil, True,
-                     CREATE_NO_WINDOW, nil, nil, StartupInfo, ProcessInfo) then
-    begin
-      // Close write pipe handle
-      CloseHandle(WritePipe);
-
-      // Read output
-      OutputString := '';
-      repeat
-        BytesRead := 0;
-        if ReadFile(ReadPipe, Buffer, SizeOf(Buffer) - 1, BytesRead, nil) then
-        begin
-          if BytesRead > 0 then
-          begin
-            Buffer[BytesRead] := #0; // Null terminate the string
-            OutputString := OutputString + string(Buffer);
-          end;
-        end;
-      until (BytesRead = 0);
-
-      // Wait for process to finish
-      WaitForSingleObject(ProcessInfo.hProcess, INFINITE);
-
-      // Close process handles
-      CloseHandle(ProcessInfo.hProcess);
-      CloseHandle(ProcessInfo.hThread);
-
-      Result := OutputString;
-    end
-    else
-      raise Exception.Create('Failed to create process');
-  finally
-    CloseHandle(ReadPipe);
-  end;
+  Memo1.Lines.Append(RunCommand(LCmd));
 end;
 
 end.
