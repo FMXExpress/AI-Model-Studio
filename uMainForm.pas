@@ -15,7 +15,7 @@ uses
   Data.Bind.Controls, FMX.Layouts, Fmx.Bind.Navigator, Data.Bind.Grid,
   Data.Bind.DBScope, FMX.Edit, FireDAC.Stan.StorageJSON, FireDAC.Stan.StorageBin,
   System.Generics.Collections, FMX.TabControl, FMX.Memo.Types, FMX.Memo,
-  FMX.BufferedLayout, FMX.Objects, uPredictFrame, FMX.ListBox;
+  FMX.BufferedLayout, FMX.Objects, uPredictFrame, FMX.ListBox, uReplicate;
 
 type
   TPropertyDetail = record
@@ -144,8 +144,11 @@ type
     procedure LocationSwitchSwitch(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Button4Click(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
   private
-    { Private declarations }
+    FClient: TReplicateClient;
+    FCurrentPage: TPage<TModel>;
+    procedure SetCurrentPage(const Value: TPage<TModel>);
   public
     { Public declarations }
     FModelsBusy: Boolean;
@@ -158,6 +161,8 @@ type
     procedure CreatePropertyControls(const PropDetail: TPropertyDetail; ParentLayout: TVertScrollBox);
     procedure ListRunningContainers;
     procedure ParseDockerOutputToMemTable(const DockerOutput: string; DockerTable: TFDMemTable);
+
+    property CurrentPage: TPage<TModel> read FCurrentPage write SetCurrentPage;
   end;
 
 var
@@ -766,6 +771,14 @@ begin
   //RESTRequest1.Execute;
   //LoadJsonIntoMemTable(FDMemTable1.FieldByName('results').AsWideString,ModelsMT);
 
+  FClient.Token := APIKeyEdit.Text;
+  if Assigned(CurrentPage) then
+    CurrentPage := FClient.Models.List(CurrentPage.Next)
+  else
+    CurrentPage := FClient.Models.List(String.Empty);
+
+  Exit;
+
   repeat
     RESTRequest1.Execute;
 
@@ -1096,11 +1109,13 @@ end;
 
 procedure TMainForm.FlowLayoutResized(Sender: TObject);
 begin
-AdjustFlowLayoutHeight(FlowLayout);
+  AdjustFlowLayoutHeight(FlowLayout);
 end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
+  FClient := TReplicateClient.Create();
+  
   var ApiKeyFile := 'c:\github\replicate.txt';
   if TFile.Exists(ApiKeyFile) then
   begin
@@ -1113,6 +1128,12 @@ begin
     end;
   end;
 
+end;
+
+procedure TMainForm.FormDestroy(Sender: TObject);
+begin
+  FCurrentPage.Free();
+  FClient.Free();
 end;
 
 procedure TMainForm.GenerateButtonClick(Sender: TObject);
@@ -1270,6 +1291,14 @@ begin
     FlowLayout.Children[I].Free;
 
   Restore(True);
+end;
+
+procedure TMainForm.SetCurrentPage(const Value: TPage<TModel>);
+begin
+  if Assigned(FCurrentPage) then
+    FreeAndNil(FCurrentPage);
+    
+  FCurrentPage := Value;
 end;
 
 procedure TMainForm.ModelLoadTimerTimer(Sender: TObject);
