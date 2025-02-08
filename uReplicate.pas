@@ -373,7 +373,7 @@ type
     procedure Request(
       const AMethod: string; 
       const APath: string;
-      const AContent: string; 
+      const APrepareCallback: TProc<THttpClient, TStream>; 
       const AResponseCallback: TProc<IHTTPResponse>);
     procedure CheckResponse(const AResponse: IHTTPResponse);
   public
@@ -386,6 +386,8 @@ type
   end;
 
   ETokenNotProvided = class(Exception);
+
+  EResponseError = class(Exception);
 
 implementation
 
@@ -601,7 +603,8 @@ begin
 end;
 
 procedure TReplicateClient.Request(const AMethod: string; 
-  const APath: string; const AContent: string;
+  const APath: string;
+  const APrepareCallback: TProc<THttpClient, TStream>;
   const AResponseCallback: TProc<IHTTPResponse>);
 begin
   var LUri := 'https://api.replicate.com';
@@ -616,10 +619,13 @@ begin
   
   var LClient := THttpClient.Create();
   try
-    var LContent := TStringStream.Create(AContent);
+    var LContent := TStringStream.Create(String.Empty, TEncoding.UTF8);
     try
       LClient.CustomHeaders['Authorization'] := 'Bearer ' + FToken;
-      LClient.ContentType := 'text/plain';
+      
+      if Assigned(APrepareCallback) then
+        APrepareCallback(LClient, LContent);
+      
       LContent.Position := 0;
       var LResponse := IHTTPResponse(LClient.Execute(AMethod, LUri, LContent));
       CheckResponse(LResponse);
@@ -635,7 +641,7 @@ end;
 procedure TReplicateClient.CheckResponse(const AResponse: IHTTPResponse);
 begin
   if (AResponse.StatusCode div 100) <> 2 then
-    raise Exception.CreateFmt(
+    raise EResponseError.CreateFmt(
       'Request failed with status %d - %s', [
         AResponse.StatusCode,
         AResponse.StatusText]);
@@ -655,7 +661,7 @@ begin
   FClient.Request(
     'GET',
     IfThen(ACursor.IsEmpty(), '/v1/models', ACursor),
-    String.Empty,
+    nil,
     procedure(AResponse: IHTTPResponse)
     begin 
       LResult := GlobalSerializer.Deserialize<TPage<TModel>>(
@@ -671,8 +677,14 @@ begin
   
   FClient.Request(
     'QUERY',
-    '/v1/models',
-    AQuery,
+    '/v1/models',    
+    procedure(AClient: THttpClient; AContent: TStream)
+    begin
+      AClient.ContentType := 'text/plain';
+
+      var LBody := TEncoding.UTF8.GetBytes(AQuery);       
+      AContent.WriteBuffer(LBody[0], Length(LBody));
+    end,
     procedure(AResponse: IHTTPResponse)
     begin 
       LResult := GlobalSerializer.Deserialize<TPage<TModel>>(
