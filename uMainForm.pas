@@ -15,7 +15,8 @@ uses
   Data.Bind.Controls, FMX.Layouts, Fmx.Bind.Navigator, Data.Bind.Grid,
   Data.Bind.DBScope, FMX.Edit, FireDAC.Stan.StorageJSON, FireDAC.Stan.StorageBin,
   System.Generics.Collections, FMX.TabControl, FMX.Memo.Types, FMX.Memo,
-  FMX.BufferedLayout, FMX.Objects, uPredictFrame, FMX.ListBox, uReplicate;
+  FMX.BufferedLayout, FMX.Objects, uPredictFrame, FMX.ListBox, uReplicate,
+  FMX.ExtCtrls;
 
 type
   TPropertyDetail = record
@@ -125,6 +126,12 @@ type
     LinkGridToDataSourceBindSourceDB3: TLinkGridToDataSource;
     ListBox1: TListBox;
     LinkFillControlToField1: TLinkFillControlToField;
+    TabItem5: TTabItem;
+    glExploreCards: TGridLayout;
+    aiExploreCards: TAniIndicator;
+    edtSearchModel: TEdit;
+    SearchEditButton1: TSearchEditButton;
+    Layout6: TLayout;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
@@ -145,10 +152,21 @@ type
     procedure FormCreate(Sender: TObject);
     procedure Button4Click(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure edtSearchModelKeyUp(Sender: TObject; var Key: Word;
+      var KeyChar: WideChar; Shift: TShiftState);
+    procedure SearchEditButton1Click(Sender: TObject);
+  private type
+    TStatus = (stLoadingExplore);
+    TStatuses = set of TStatus;
   private
     FClient: TReplicateClient;
     FCurrentPage: TPage<TModel>;
+    FStatuses: TStatuses;
     procedure SetCurrentPage(const Value: TPage<TModel>);
+    
+    procedure UpdateStatuses(const AStatuses: TStatuses);
+    procedure UpdateExplore(const AQuery: string = String.Empty);
   public
     { Public declarations }
     FModelsBusy: Boolean;
@@ -189,7 +207,8 @@ uses
   System.Math,
   System.JSON,
   System.IOUtils,
-  uItemFrame;
+  uItemFrame,
+  uExploreCard;
 
 type
   TStreamHandle = pointer;
@@ -766,17 +785,14 @@ end;
 
 procedure TMainForm.Button1Click(Sender: TObject);
 begin
+  
   RESTClient1.BaseURL := 'https://api.replicate.com/v1/models';
   RESTRequest1.Params[0].Value := 'Token ' + APIKeyEdit.Text;
   //RESTRequest1.Execute;
   //LoadJsonIntoMemTable(FDMemTable1.FieldByName('results').AsWideString,ModelsMT);
 
-  FClient.Token := APIKeyEdit.Text;
-  if Assigned(CurrentPage) then
-    CurrentPage := FClient.Models.List(CurrentPage.Next)
-  else
-    CurrentPage := FClient.Models.List(String.Empty);
-
+  UpdateExplore();
+  
   Exit;
 
   repeat
@@ -978,6 +994,15 @@ begin
 
 end;
 
+procedure TMainForm.edtSearchModelKeyUp(Sender: TObject; var Key: Word;
+  var KeyChar: WideChar; Shift: TShiftState);
+begin
+  if Key = vkReturn then begin
+    UpdateExplore(edtSearchModel.Text);
+    Key := 0;
+  end;
+end;
+
 procedure AddEditsToJson(Control: TFmxObject; JSONObj: TJSONObject);
 var
   I: Integer;
@@ -1134,6 +1159,13 @@ procedure TMainForm.FormDestroy(Sender: TObject);
 begin
   FCurrentPage.Free();
   FClient.Free();
+end;
+
+procedure TMainForm.FormShow(Sender: TObject);
+begin
+  MultiView1.Visible := false;
+  Toolbar1.Visible := false;
+  UpdateExplore();
 end;
 
 procedure TMainForm.GenerateButtonClick(Sender: TObject);
@@ -1293,12 +1325,94 @@ begin
   Restore(True);
 end;
 
+procedure TMainForm.SearchEditButton1Click(Sender: TObject);
+begin
+  UpdateExplore(edtSearchModel.Text);
+end;
+
 procedure TMainForm.SetCurrentPage(const Value: TPage<TModel>);
 begin
   if Assigned(FCurrentPage) then
     FreeAndNil(FCurrentPage);
     
   FCurrentPage := Value;
+end;
+
+procedure TMainForm.UpdateExplore(const AQuery: string);
+var
+  LProcessPageResult: TProc<TPage<TModel>, Exception>;
+begin
+  var LLoadPageResult := procedure(APage: TPage<TModel>) begin
+    CurrentPage := APage;
+
+    glExploreCards.BeginUpdate();
+    try
+      // CleanUp
+      for var I := glExploreCards.ChildrenCount - 1 downto 0 do begin
+        var LItem := glExploreCards.Children[I];
+
+        if not (LItem is TExploreCard) then
+          Continue;
+
+        glExploreCards.RemoveObject(LItem);
+        LItem.Free();
+      end;
+
+      // Create a mew card
+      for var LModel in CurrentPage.Results do begin
+        var LCard := TExploreCard.Create(glExploreCards);
+        LCard.Name := 'explore_model_card_' + glExploreCards.ChildrenCount.ToString();
+        glExploreCards.AddObject(LCard);
+        LCard.ModelName := LModel.Id;
+        LCard.Description := LModel.Description;
+        LCard.RunCount := LModel.RunCount;
+        LCard.CoverImageUrl := LModel.CoverImageUrl;
+        LCard.Init();
+      end;
+    finally
+      glExploreCards.EndUpdate();
+    end;
+  end;
+
+  FClient.Token := APIKeyEdit.Text;
+
+  LProcessPageResult := procedure(APage: TPage<TModel>; AError: Exception) begin
+    TThread.Queue(nil, procedure() begin
+      UpdateStatuses( FStatuses - [TStatus.stLoadingExplore] );
+
+      if Assigned(AError) then
+        raise AError
+      else
+        LLoadPageResult(APage);
+    end);
+  end;
+
+  UpdateStatuses( FStatuses + [TStatus.stLoadingExplore] );
+
+  if AQuery.IsEmpty then begin
+    if Assigned(CurrentPage) then
+      FClient.Models.AsyncList(CurrentPage.Next, LProcessPageResult)
+    else
+      FClient.Models.AsyncList(String.Empty, LProcessPageResult);
+  end else
+    FClient.Models.AsyncSearch(AQuery, LProcessPageResult);
+end;
+
+procedure TMainForm.UpdateStatuses(const AStatuses: TStatuses);
+begin
+  FStatuses := AStatuses;  
+
+  if TStatus.stLoadingExplore in FStatuses then begin
+    Button1.Enabled := false;
+    edtSearchModel.Enabled := false;
+    aiExploreCards.Visible := true;
+    aiExploreCards.Enabled := true;
+  end else begin
+    Button1.Enabled := true;
+    edtSearchModel.Enabled := true;
+    aiExploreCards.Enabled := false;
+    aiExploreCards.Visible := false;
+  end;
 end;
 
 procedure TMainForm.ModelLoadTimerTimer(Sender: TObject);

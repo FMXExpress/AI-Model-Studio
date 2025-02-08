@@ -355,6 +355,8 @@ type
       /// A page of of models.
       /// </returns>
       function List(const ACursor: string): TPage<TModel>;
+      procedure AsyncList(const ACursor: string;
+        const ACallback: TProc<TPage<TModel>, Exception>);
       /// <summary>
       /// Search for public models.
       /// </summary>
@@ -365,6 +367,8 @@ type
       /// A page of of models.
       /// </returns>
       function Search(const AQuery: string): TPage<TModel>;
+      procedure AsyncSearch(const AQuery: string;
+        const ACallback: TProc<TPage<TModel>, Exception>);
     end;
   private
     FBaseUrl: string;
@@ -394,7 +398,8 @@ implementation
 uses
   System.StrUtils,
   System.IOUtils,
-  System.Variants;
+  System.Variants,
+  System.Threading;
 
 var
   GlobalSerializer: TJsonSerializer;
@@ -482,7 +487,7 @@ begin
       else if (AReader.CurrentState = TJsonReader.TState.PostValue) then begin
         var LData := TAnyConverter.Convert(AReader, ATypeInf);
 
-        LArray := LArray + [TAny(LData)];     
+        LArray := LArray + [LData];
       end;
     end;
   
@@ -513,7 +518,7 @@ class function TDictConverter.Convert(const AReader: TJsonReader;
   const ATypeInf: PTypeInfo): TValue;
 begin
   if (AReader.TokenType <> TJsonToken.StartObject) then
-    Exit(TValue.Empty);
+    raise Exception.Create('erro aki');//Exit(TValue.Empty);
     
   var LArray: TDict := nil;
   
@@ -524,7 +529,7 @@ begin
         AReader.Read();
         var LValue := TAnyConverter.Convert(AReader, TypeInfo(TAny));
                                  
-        LArray := LArray + [TDictPair.Create(LKey, TAny(LValue))];   
+        LArray := LArray + [TDictPair.Create(LKey, LValue)];
       end;
       TJsonToken.EndObject:
         Break;
@@ -671,6 +676,19 @@ begin
   Result := LResult;
 end;
 
+procedure TReplicateClient.TModels.AsyncList(const ACursor: string;
+  const ACallback: TProc<TPage<TModel>, Exception>);
+begin
+  TTask.Run(procedure() begin
+    try
+      ACallback(List(ACursor), nil);
+    except
+      on E: Exception do
+        ACallback(nil, AcquireExceptionObject() as Exception);
+    end;
+  end);
+end;
+
 function TReplicateClient.TModels.Search(const AQuery: string): TPage<TModel>;
 begin
   var LResult := nil;
@@ -692,6 +710,19 @@ begin
     end);
 
   Result := LResult;
+end;
+
+procedure TReplicateClient.TModels.AsyncSearch(const AQuery: string;
+  const ACallback: TProc<TPage<TModel>, Exception>);
+begin
+  TTask.Run(procedure() begin
+    try
+      ACallback(Search(AQuery), nil);
+    except
+      on E: Exception do
+        ACallback(nil, AcquireExceptionObject() as Exception);
+    end;
+  end);
 end;
 
 initialization
