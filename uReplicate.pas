@@ -63,44 +63,11 @@ type
   TDictPair = TPair<string, TAny>;
   TDict = TArray<TDictPair>;
 
+  TResourceClass = class of TResource;
   /// <summary>
   /// A base class for representing a single object on the server.
   /// </summary>
-  TResource = class(TObject)
-  private
-    [unsafe]
-    FClient: TReplicateClient;
-  public
-    constructor Create(const AClient: TReplicateClient);
-    destructor Destroy(); override;
-  end;
-
-  /// <summary>
-  /// A page of results from the API.
-  /// </summary>
-  TPage<T: class> = class
-  private
-    [JsonName('previous')]
-    FPrevious: string;
-    [JsonName('next')]
-    FNext: string;
-    [JsonName('results')]
-    FResults: TArray<T>;
-  public
-    destructor Destroy(); override;
-    /// <summary>
-    /// A pointer to the previous page of results.
-    /// </summary>
-    property Previous: string read FPrevious write FPrevious;
-    /// <summary>
-    /// AA pointer to the next page of results.
-    /// </summary>
-    property Next: string read FNext write FNext;
-    /// <summary>
-    /// The results on this page.
-    /// </summary>
-    property Results: TArray<T> read FResults write FResults;
-  end;
+  TResource = class(TPersistent);
 
   /// <summary>
   /// A version of a model.
@@ -115,6 +82,8 @@ type
     FCogVersion: string;
     [JsonName('openapi_schema')]
     FOpenAPISchema: TDict;
+  protected
+    procedure AssignTo(Dest: TPersistent); override;
   public
     /// <summary>
     /// The unique ID of the version.
@@ -168,9 +137,9 @@ type
     FCompletedAt: string;
     [JsonName('urls')]
     FUrls: TDict;
+  protected
+    procedure AssignTo(Dest: TPersistent); override;
   public
-    constructor Create(const AClient: TReplicateClient);
-    destructor Destroy(); override;
     /// <summary>
     /// The unique ID of the prediction.
     /// </summary>
@@ -267,9 +236,13 @@ type
     [JsonName('latest_version')]
     FLatestVersion: TVersion;
     function GetId: string;
+  protected
+    procedure AssignTo(Dest: TPersistent); override;
   public
-    constructor Create(const AClient: TReplicateClient);
+    constructor Create();
     destructor Destroy(); override;
+
+    function Clone(): TModel;
 
     /// <summary>
     /// The URL of the model.
@@ -335,6 +308,35 @@ type
     /// Return the qualified model name, in the format "owner/name".
     /// </summary>
     property Id: string read GetId;
+  end;
+
+  /// <summary>
+  /// A page of results from the API.
+  /// </summary>
+  TPage<T: class> = class(TPersistent)
+  private
+    [JsonName('previous')]
+    FPrevious: string;
+    [JsonName('next')]
+    FNext: string;
+    [JsonName('results')]
+    FResults: TArray<T>;
+  protected
+    procedure AssignTo(Dest: TPersistent); override;
+  public
+    destructor Destroy(); override;
+    /// <summary>
+    /// A pointer to the previous page of results.
+    /// </summary>
+    property Previous: string read FPrevious write FPrevious;
+    /// <summary>
+    /// AA pointer to the next page of results.
+    /// </summary>
+    property Next: string read FNext write FNext;
+    /// <summary>
+    /// The results on this page.
+    /// </summary>
+    property Results: TArray<T> read FResults write FResults;
   end;
 
   TReplicateClient = class
@@ -518,7 +520,7 @@ class function TDictConverter.Convert(const AReader: TJsonReader;
   const ATypeInf: PTypeInfo): TValue;
 begin
   if (AReader.TokenType <> TJsonToken.StartObject) then
-    raise Exception.Create('erro aki');//Exit(TValue.Empty);
+    Exit(TValue.Empty);
     
   var LArray: TDict := nil;
   
@@ -538,48 +540,47 @@ begin
     end;  
   
   Result := TValue.From<TDict>(LArray);
+
+  if (AReader.TokenType <> TJsonToken.EndObject) then
+    raise Exception.Create('Error Message');
 end;
 
-{ TResource }
+{ TVersion }
 
-constructor TResource.Create(const AClient: TReplicateClient);
+procedure TVersion.AssignTo(Dest: TPersistent);
 begin
-  FClient := AClient;
-end;
-
-destructor TResource.Destroy;
-begin
-  FClient.Free();
-  inherited;
-end;
-
-{ TPage<T> }
-
-destructor TPage<T>.Destroy;
-begin
-  for var LItem in FResults do
-    LItem.Free();
-  inherited;
+  TVersion(Dest).FId := FId;
+  TVersion(Dest).FCreatedAt := FCreatedAt;
+  TVersion(Dest).FCogVersion := FCogVersion;
+  TVersion(Dest).FOpenAPISchema := FOpenAPISchema;
 end;
 
 { TPrediction }
 
-constructor TPrediction.Create(const AClient: TReplicateClient);
+procedure TPrediction.AssignTo(Dest: TPersistent);
 begin
-end;
-
-destructor TPrediction.Destroy;
-begin
-  inherited;
+  TPrediction(Dest).FId := FId;
+  TPrediction(Dest).FModel := FModel;
+  TPrediction(Dest).FVersion := FVersion;
+  TPrediction(Dest).FStatus := FStatus;
+  TPrediction(Dest).FInput := FInput;
+  TPrediction(Dest).FOutput := FOutput;
+  TPrediction(Dest).FLogs := FLogs;
+  TPrediction(Dest).FError := FError;
+  TPrediction(Dest).FMetrics := FMetrics;
+  TPrediction(Dest).FCreatedAt := FCreatedAt;
+  TPrediction(Dest).FStartedAt := FStartedAt;
+  TPrediction(Dest).FCompletedAt := FCompletedAt;
+  TPrediction(Dest).FUrls := FUrls;
 end;
 
 { TModel }
 
-constructor TModel.Create(const AClient: TReplicateClient);
+constructor TModel.Create();
 begin
   inherited;
-  FDefaultExample := TPrediction.Create(AClient);
-  FLatestVersion := TVersion.Create(AClient);
+  FDefaultExample := TPrediction.Create();
+  FLatestVersion := TVersion.Create();
 end;
 
 destructor TModel.Destroy;
@@ -589,9 +590,59 @@ begin
   inherited;
 end;
 
+procedure TModel.AssignTo(Dest: TPersistent);
+begin
+  TModel(Dest).FUrl := FUrl;
+  TModel(Dest).FOwner := FOwner;
+  TModel(Dest).FName := FName;
+  TModel(Dest).FDescription := FDescription;
+  TModel(Dest).FVisibility := FVisibility;
+  TModel(Dest).FGitHubUrl := FGitHubUrl;
+  TModel(Dest).FPaperUrl := FPaperUrl;
+  TModel(Dest).FLicenseUrl := FLicenseUrl;
+  TModel(Dest).FRunCount := FRunCount;
+  TModel(Dest).FCoverImageUrl := FCoverImageUrl;
+  TModel(Dest).FDefaultExample := TPrediction.Create();
+  TModel(Dest).FLatestVersion := TVersion.Create();
+
+  TModel(Dest).FDefaultExample.Assign(FDefaultExample);
+  TModel(Dest).FLatestVersion.Assign(FLatestVersion);
+end;
+
+function TModel.Clone: TModel;
+begin
+  Result := TModel.Create();
+  Result.Assign(Self);
+end;
+
 function TModel.GetId: string;
 begin
   Result := FOwner + '/' + FName;
+end;
+
+{ TPage<T> }
+
+procedure TPage<T>.AssignTo(Dest: TPersistent);
+begin
+  TPage<T>(Dest).FPrevious := FPrevious;
+  TPage<T>(Dest).FNext := FNext;
+
+  var LResults: TArray<T> := nil;
+  for var LResult in FResults do
+    if LResult is TResource then begin
+      var LClone := TResourceClass(LResult.ClassType).Create();
+      LClone.Assign(TPersistent(LResult));
+      LResults := LResults + [T(LClone)];
+    end;
+
+  TPage<T>(Dest).FResults := LResults;
+end;
+
+destructor TPage<T>.Destroy;
+begin
+  for var LItem in FResults do
+    LItem.Free();
+  inherited;
 end;
 
 { TReplicateClient }
@@ -704,7 +755,8 @@ begin
       AContent.WriteBuffer(LBody[0], Length(LBody));
     end,
     procedure(AResponse: IHTTPResponse)
-    begin 
+    begin
+      TFile.WriteAllText('C:\Dev\Delphi\Projects\AI-Model-Studio\log.json', AResponse.ContentAsString());
       LResult := GlobalSerializer.Deserialize<TPage<TModel>>(
         AResponse.ContentAsString());
     end);
