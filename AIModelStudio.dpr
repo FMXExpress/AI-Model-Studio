@@ -7,7 +7,8 @@ uses
   uItemFrame in 'uItemFrame.pas' {FrameItem: TFrame},
   uPredictFrame in 'uPredictFrame.pas' {PredictFrame: TFrame},
   uReplicate in 'uReplicate.pas',
-  uExploreCard in 'uExploreCard.pas' {ExploreCard: TFrame};
+  uExploreCard in 'uExploreCard.pas' {ExploreCard: TFrame},
+  uRunCommand in 'uRunCommand.pas';
 
 {$R *.res}
 
