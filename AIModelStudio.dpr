@@ -8,7 +8,8 @@ uses
   uPredictFrame in 'uPredictFrame.pas' {PredictFrame: TFrame},
   uReplicate in 'uReplicate.pas',
   uExploreCard in 'uExploreCard.pas' {ExploreCard: TFrame},
-  uRunCommand in 'uRunCommand.pas';
+  uRunCommand in 'uRunCommand.pas',
+  uStartModelLog in 'uStartModelLog.pas' {StartModelLog};
 
 {$R *.res}
 
