@@ -2,7 +2,12 @@ unit uRunCommand;
 
 interface
 
-  function RunCommand(const ACmd: string): string; forward;
+uses
+  System.SysUtils;
+
+  procedure RunCommand(const ACmd: string;
+    const ACallback: TProc<string>); forward; overload;
+  function RunCommand(const ACmd: string): string; forward; overload;
   procedure OpenCmd(const ACmd: string); forward;
 
 implementation
@@ -10,21 +15,21 @@ implementation
 uses
   {$IFDEF MSWINDOWS}
   ShellAPI,
-  Windows,
+  Windows
   {$ENDIF MSWINDOWS}
   {$IFDEF POSIX}
   Posix.Base,
   Posix.Fcntl,
   Posix.Stdio,
-  Posix.Stdlib,
+  Posix.Stdlib
   {$ENDIF POSIX}
-  System.SysUtils;
+  ;
 
 type
   TStreamHandle = pointer;
 
 {$IFDEF MSWINDOWS}
-function RunCommand(const ACmd: string): string;
+procedure RunCommand(const ACmd: string; const ACallback: TProc<string>);
 var
   LStartupInfo: TStartupInfo;
   LProcessInfo: TProcessInformation;
@@ -34,8 +39,6 @@ var
   LBytesRead: Cardinal;
   LCmd: string;
 begin
-  Result := String.Empty;
-
   // Set up security attributes to allow inheriting handles
   FillChar(LSecurityAttributes, SizeOf(LSecurityAttributes), 0);
   LSecurityAttributes.nLength := SizeOf(LSecurityAttributes);
@@ -86,8 +89,7 @@ begin
         if not ReadFile(LReadPipe, LBuffer[0], Length(LBuffer), LBytesRead, nil) or (LBytesRead = 0) then
           Break;
 
-        Result := Result
-          + TEncoding.UTF8.GetString(LBuffer, 0, Integer(LBytesRead));
+        ACallback(TEncoding.UTF8.GetString(LBuffer, 0, Integer(LBytesRead)));
       end;
     finally
       // Wait for the process to finish and clean up
@@ -135,18 +137,16 @@ begin
   end;
 end;
 
-function RunCommand(const ACmd: string): string;
+procedure RunCommand(const ACmd: string; const ACallback: TProc<string>);
 var
   LHandle: TStreamHandle;
   LData: array[0..511] of uint8;
   LMarshaller: TMarshaller;
 begin
-  Result := String.Empty;
-
-  LHandle := popen(LMarshaller.AsAnsi(ACmd).ToPointer(), 'r');
+  LHandle := popen(LMarshaller.AsAnsi(ACmd + ' 2>&1').ToPointer(), 'r');
   try
-    while fgets(@LData[0], SizeOf(LData), LHandle)<>nil do begin
-      Result := Result + BufferToString(@LData[0], SizeOf(LData));
+    while fgets(@LData[0], SizeOf(LData), LHandle) <> nil do begin
+      ACallback(BufferToString(@LData[0], SizeOf(LData)));
     end;
   finally
     pclose(LHandle);
@@ -160,5 +160,14 @@ begin
   _system(LMarshaller.AsAnsi('open ' + ACmd).ToPointer());
 end;
 {$ENDIF POSIX}
+
+function RunCommand(const ACmd: string): string;
+begin
+  var LResult := string.Empty;
+  RunCommand(ACmd, procedure(ALog: string) begin
+    LResult := LResult + ALog;
+  end);
+  Result := LResult;
+end;
 
 end.
