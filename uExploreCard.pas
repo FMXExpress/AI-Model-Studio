@@ -4,7 +4,7 @@ interface
 
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants, 
-  FMX.Types, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs, FMX.StdCtrls,
+  System.Threading, FMX.Types, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs, FMX.StdCtrls,
   FMX.Controls.Presentation, FMX.Layouts, FMX.Objects, System.Net.URLClient,
   System.Net.HttpClient, System.Net.HttpClientComponent, FMX.Menus, uReplicate;
 
@@ -49,7 +49,9 @@ type
 implementation
 
 uses
-  System.SyncObjs;
+  System.SyncObjs,
+  uRunCommand,
+  uStartModelLog;
 
 {$R *.fmx}
 
@@ -157,7 +159,36 @@ end;
 
 procedure TExploreCard.miRunLocallyClick(Sender: TObject);
 begin
-  //
+  var LCmd := 'docker run -d -p '
+    + '6000:5000 '
+    + '--name ' + FModel.Owner + '_' + FModel.Name
+    + '--gpus=all '
+    + 'r8.im/'
+    + FModel.Id
+    + '@sha256:'
+    + FModel.LatestVersion.Id;
+
+  var LLogWindow := TStartModelLog.Create(Self);
+  var LLogger := LLogWindow.Show(procedure() begin
+    TThread.Queue(nil, procedure begin
+      ShowMessage('Open chat window');
+    end);
+  end);
+
+  TTask.Run(procedure() begin
+
+    RunCommand(LCmd, procedure(ALog: string) begin
+      var LLog := ALog;
+      TThread.Queue(nil, procedure() begin
+        LLogger(LLog);
+      end);
+    end);
+
+    TThread.Queue(nil, procedure begin
+      LLogWindow.Done();
+    end);
+
+  end);
 end;
 
 procedure TExploreCard.miRunOnlineClick(Sender: TObject);

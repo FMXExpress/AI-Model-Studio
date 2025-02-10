@@ -3,8 +3,8 @@ object ExploreCard: TExploreCard
   Margins.Left = 10.000000000000000000
   Margins.Top = 10.000000000000000000
   Margins.Right = 10.000000000000000000
-  Size.Width = 563.000000000000000000
-  Size.Height = 382.000000000000000000
+  Size.Width = 344.000000000000000000
+  Size.Height = 356.000000000000000000
   Size.PlatformDefault = False
   object recCard: TRectangle
     Align = Client
@@ -13,8 +13,8 @@ object ExploreCard: TExploreCard
     Padding.Top = 10.000000000000000000
     Padding.Right = 10.000000000000000000
     Padding.Bottom = 10.000000000000000000
-    Size.Width = 563.000000000000000000
-    Size.Height = 382.000000000000000000
+    Size.Width = 344.000000000000000000
+    Size.Height = 356.000000000000000000
     Size.PlatformDefault = False
     XRadius = 10.000000000000000000
     YRadius = 10.000000000000000000
@@ -172,8 +172,8 @@ object ExploreCard: TExploreCard
           FileName = 'C:\Users\lmbelo\Downloads\images.png'
         end>
       Align = Client
-      Size.Width = 543.000000000000000000
-      Size.Height = 258.000000000000000000
+      Size.Width = 324.000000000000000000
+      Size.Height = 232.000000000000000000
       Size.PlatformDefault = False
       WrapMode = Stretch
       object aniConverImage: TAniIndicator
@@ -186,8 +186,8 @@ object ExploreCard: TExploreCard
     object layDetails: TLayout
       Align = Bottom
       Position.X = 10.000000000000000000
-      Position.Y = 268.000000000000000000
-      Size.Width = 543.000000000000000000
+      Position.Y = 242.000000000000000000
+      Size.Width = 324.000000000000000000
       Size.Height = 104.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 1
@@ -199,11 +199,12 @@ object ExploreCard: TExploreCard
         Margins.Right = 4.000000000000000000
         Position.X = 4.000000000000000000
         Position.Y = 4.000000000000000000
-        Size.Width = 535.000000000000000000
+        Size.Width = 316.000000000000000000
         Size.Height = 20.000000000000000000
         Size.PlatformDefault = False
         TextSettings.Font.Family = 'Sans Serif Collection'
         TextSettings.Font.Size = 16.000000000000000000
+        TextSettings.WordWrap = False
         Text = 'Black-Forest-Labs/flux-1.1-pro-ultra'
         TabOrder = 0
       end
@@ -214,22 +215,23 @@ object ExploreCard: TExploreCard
         Margins.Right = 4.000000000000000000
         Position.X = 4.000000000000000000
         Position.Y = 32.000000000000000000
-        Size.Width = 535.000000000000000000
-        Size.Height = 36.000000000000000000
+        Size.Width = 316.000000000000000000
+        Size.Height = 50.000000000000000000
         Size.PlatformDefault = False
+        StyleLookup = 'labelstyle'
         Text = 
           'Flux1.1 (pro) in ultra and raw modes. Images are up to 4 megapix' +
           'els. Use raw mode for realism.'
         TabOrder = 1
       end
       object layBar: TLayout
-        Align = Bottom
+        Align = Top
         Margins.Left = 4.000000000000000000
         Margins.Right = 4.000000000000000000
         Margins.Bottom = 4.000000000000000000
         Position.X = 4.000000000000000000
-        Position.Y = 80.000000000000000000
-        Size.Width = 535.000000000000000000
+        Position.Y = 82.000000000000000000
+        Size.Width = 316.000000000000000000
         Size.Height = 20.000000000000000000
         Size.PlatformDefault = False
         TabOrder = 2
@@ -243,7 +245,7 @@ object ExploreCard: TExploreCard
         end
         object btnOptions: TButton
           Align = Right
-          Position.X = 515.000000000000000000
+          Position.X = 296.000000000000000000
           Size.Width = 20.000000000000000000
           Size.Height = 20.000000000000000000
           Size.PlatformDefault = False
@@ -254,15 +256,6 @@ object ExploreCard: TExploreCard
         end
       end
     end
-  end
-  object NetHTTPClient1: TNetHTTPClient
-    Asynchronous = True
-    UserAgent = 'Embarcadero URI Client/1.0'
-    OnRequestCompleted = NetHTTPClient1RequestCompleted
-    OnRequestError = NetHTTPClient1RequestError
-    OnRequestException = NetHTTPClient1RequestException
-    Left = 32
-    Top = 8
   end
   object PopupMenu1: TPopupMenu
     Left = 32
@@ -278,8 +271,17 @@ object ExploreCard: TExploreCard
     end
     object miRunLocally: TMenuItem
       Locked = True
-      Text = 'Run locally (Docker)'
+      Text = 'Run offline (Docker)'
       OnClick = miRunLocallyClick
     end
+  end
+  object NetHTTPClient1: TNetHTTPClient
+    Asynchronous = True
+    UserAgent = 'Embarcadero URI Client/1.0'
+    OnRequestCompleted = NetHTTPClient1RequestCompleted
+    OnRequestError = NetHTTPClient1RequestError
+    OnRequestException = NetHTTPClient1RequestException
+    Left = 32
+    Top = 8
   end
 end
