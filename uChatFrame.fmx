@@ -44,9 +44,9 @@ object ChatFrame: TChatFrame
       Margins.Right = 10.000000000000000000
       Margins.Bottom = 10.000000000000000000
       Position.X = 10.000000000000000000
-      Position.Y = 484.000000000000000000
+      Position.Y = 470.000000000000000000
       Size.Width = 157.000000000000000000
-      Size.Height = 22.000000000000000000
+      Size.Height = 36.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 0
       Text = 'Back to Explore'

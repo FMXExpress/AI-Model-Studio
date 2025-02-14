@@ -50,9 +50,7 @@ implementation
 
 uses
   System.SyncObjs,
-  uRunCommand,
-  uStartModelLog,
-  uSharedData,
+  uStartModel,
   uMainForm;
 
 {$R *.fmx}
@@ -161,39 +159,7 @@ end;
 
 procedure TExploreCard.miRunLocallyClick(Sender: TObject);
 begin
-  var LCmd := 'docker run -d -p '
-    + '6000:5000 '
-    + '--name ' + FModel.Owner + '_' + FModel.Name
-    + '--gpus=all '
-    + 'r8.im/'
-    + FModel.Id
-    + '@sha256:'
-    + FModel.LatestVersion.Id;
-
-  var LLogWindow := TStartModelLog.Create(Self);
-  var LLogger := LLogWindow.Show(procedure() begin
-    TThread.Queue(nil, procedure begin
-
-      SharedData.StartChatOffline(FModel.Id);
-
-      uMainForm.MainForm.ShowChat();
-    end);
-  end);
-
-  TTask.Run(procedure() begin
-
-    RunCommand(LCmd, procedure(ALog: string) begin
-      var LLog := ALog;
-      TThread.Queue(nil, procedure() begin
-        LLogger(LLog);
-      end);
-    end);
-
-    TThread.Queue(nil, procedure begin
-      LLogWindow.Done();
-    end);
-
-  end);
+  TStartModel.Start(FModel);
 end;
 
 procedure TExploreCard.miRunOnlineClick(Sender: TObject);

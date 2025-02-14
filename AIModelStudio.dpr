@@ -9,9 +9,10 @@ uses
   uReplicate in 'uReplicate.pas',
   uExploreCard in 'uExploreCard.pas' {ExploreCard: TFrame},
   uRunCommand in 'uRunCommand.pas',
-  uStartModelLog in 'uStartModelLog.pas' {StartModelLog},
+  uStartModel in 'uStartModel.pas' {StartModel},
   uChatFrame in 'uChatFrame.pas' {ChatFrame: TFrame},
-  uSharedData in 'uSharedData.pas' {SharedData: TDataModule};
+  uSharedData in 'uSharedData.pas' {SharedData: TDataModule},
+  uDocker in 'uDocker.pas';
 
 {$R *.res}
 
@@ -21,3 +22,4 @@ begin
   Application.CreateForm(TMainForm, MainForm);
   Application.Run;
 end.
+

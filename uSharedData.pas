@@ -61,7 +61,11 @@ procedure TSharedData.DataModuleCreate(Sender: TObject);
 begin
   FRoot := TPath.Combine(
     TPath.GetDocumentsPath(),
-    'AIModelStudio');
+    'AIModelStudio',
+    'db');
+
+  if not TDirectory.Exists(FRoot) then
+    TDirectory.CreateDirectory(FRoot);
 
   LoadDataSet(mtChatModel, 'chat_model.json');
   LoadDataSet(mtChatModelProjects, 'chat_model_projects.json');
