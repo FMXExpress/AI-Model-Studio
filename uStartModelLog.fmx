@@ -40,7 +40,7 @@ object StartModelLog: TStartModelLog
       Size.PlatformDefault = False
       StyleLookup = 'Button1Style1'
       TabOrder = 0
-      Text = 'Continue'
+      Text = 'Chat'
       TextSettings.Trimming = None
       OnClick = Button1Click
     end

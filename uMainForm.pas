@@ -16,7 +16,7 @@ uses
   Data.Bind.DBScope, FMX.Edit, FireDAC.Stan.StorageJSON, FireDAC.Stan.StorageBin,
   System.Generics.Collections, FMX.TabControl, FMX.Memo.Types, FMX.Memo,
   FMX.BufferedLayout, FMX.Objects, uPredictFrame, FMX.ListBox, uReplicate,
-  FMX.ExtCtrls;
+  FMX.ExtCtrls, uChatFrame;
 
 type
   TPropertyDetail = record
@@ -126,12 +126,14 @@ type
     LinkGridToDataSourceBindSourceDB3: TLinkGridToDataSource;
     ListBox1: TListBox;
     LinkFillControlToField1: TLinkFillControlToField;
-    TabItem5: TTabItem;
+    tiExplore: TTabItem;
     glExploreCards: TGridLayout;
     aiExploreCards: TAniIndicator;
     edtSearchModel: TEdit;
     SearchEditButton1: TSearchEditButton;
     Layout6: TLayout;
+    tiChat: TTabItem;
+    ChatFrame1: TChatFrame;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
@@ -181,6 +183,9 @@ type
     procedure CreatePropertyControls(const PropDetail: TPropertyDetail; ParentLayout: TVertScrollBox);
     procedure ListRunningContainers;
     procedure ParseDockerOutputToMemTable(const DockerOutput: string; DockerTable: TFDMemTable);
+
+    procedure ShowExplore();
+    procedure ShowChat();
 
     property CurrentPage: TPage<TModel> read FCurrentPage write SetCurrentPage;
   end;
@@ -999,7 +1004,7 @@ end;
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
   FClient := TReplicateClient.Create();
-  
+
   var ApiKeyFile := 'c:\github\replicate.txt';
   if TFile.Exists(ApiKeyFile) then
   begin
@@ -1024,6 +1029,7 @@ procedure TMainForm.FormShow(Sender: TObject);
 begin
   MultiView1.Visible := false;
   Toolbar1.Visible := false;
+  ShowExplore();
   UpdateExplore();
 end;
 
@@ -1203,6 +1209,16 @@ begin
   FCurrentPage := Value;
 end;
 
+procedure TMainForm.ShowChat;
+begin
+  TabControl1.ActiveTab := tiChat;
+end;
+
+procedure TMainForm.ShowExplore;
+begin
+  TabControl1.ActiveTab := tiExplore;
+end;
+
 procedure TMainForm.UpdateExplore(const AQuery: string);
 var
   LProcessPageResult: TProc<TPage<TModel>, Exception>;
@@ -1215,9 +1231,8 @@ begin
     for var LModel in CurrentPage.Results do begin
       var LCard := TExploreCard.Create(glExploreCards);
       LCard.Name := 'explore_model_card_' + GetNextCompCount().ToString();
-      //glExploreCards.AddObject(LCard);
       LCard.Init(LModel);
-      LCards := LCards + [LCard]
+      LCards := LCards + [LCard];
     end;
 
     TThread.Queue(nil, procedure() begin
@@ -1235,7 +1250,7 @@ begin
           LItem.Free();
         end;
 
-        // Create a mew card
+        // Create new cards
         for var LCard in LCards do
           glExploreCards.AddObject(LCard);
       finally

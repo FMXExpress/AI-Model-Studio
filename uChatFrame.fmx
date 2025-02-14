@@ -1,0 +1,85 @@
+object ChatFrame: TChatFrame
+  Size.Width = 726.000000000000000000
+  Size.Height = 516.000000000000000000
+  Size.PlatformDefault = False
+  object Layout1: TLayout
+    Align = Client
+    Size.Width = 549.000000000000000000
+    Size.Height = 516.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 1
+    object ToolBar1: TToolBar
+      Size.Width = 549.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+      object edtProjectName: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        Align = Center
+        TabOrder = 0
+        TextSettings.HorzAlign = Center
+        Size.Width = 170.000000000000000000
+        Size.Height = 22.000000000000000000
+        Size.PlatformDefault = False
+      end
+    end
+  end
+  object lvProjects: TListView
+    ItemAppearanceClassName = 'TListItemAppearance'
+    ItemEditAppearanceClassName = 'TListItemDeleteAppearance'
+    HeaderAppearanceClassName = 'TListHeaderObjects'
+    FooterAppearanceClassName = 'TListHeaderObjects'
+    AlternatingColors = True
+    Align = Left
+    Size.Width = 177.000000000000000000
+    Size.Height = 516.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    ItemAppearance.ItemHeight = 30
+    ItemAppearanceObjects.ItemObjects.Text.Width = 200.000000000000000000
+    ItemAppearanceObjects.ItemObjects.Text.VertAlign = Center
+    object Button1: TButton
+      Align = Bottom
+      Margins.Left = 10.000000000000000000
+      Margins.Right = 10.000000000000000000
+      Margins.Bottom = 10.000000000000000000
+      Position.X = 10.000000000000000000
+      Position.Y = 484.000000000000000000
+      Size.Width = 157.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+      Text = 'Back to Explore'
+      TextSettings.Trimming = None
+      OnClick = Button1Click
+    end
+  end
+  object BindSourceDB1: TBindSourceDB
+    DataSet = SharedData.mtChatModelProjects
+    ScopeMappings = <>
+    Left = 80
+    Top = 240
+  end
+  object BindingsList1: TBindingsList
+    Methods = <>
+    OutputConverters = <>
+    Left = 76
+    Top = 173
+    object LinkListControlToField1: TLinkListControlToField
+      Category = 'Quick Bindings'
+      DataSource = BindSourceDB1
+      FieldName = 'name'
+      Control = lvProjects
+      FillExpressions = <>
+      FillHeaderExpressions = <>
+      FillBreakGroups = <>
+    end
+    object LinkControlToField1: TLinkControlToField
+      Category = 'Quick Bindings'
+      DataSource = BindSourceDB1
+      FieldName = 'name'
+      Control = edtProjectName
+      Track = True
+    end
+  end
+end

@@ -51,7 +51,9 @@ implementation
 uses
   System.SyncObjs,
   uRunCommand,
-  uStartModelLog;
+  uStartModelLog,
+  uSharedData,
+  uMainForm;
 
 {$R *.fmx}
 
@@ -154,7 +156,7 @@ end;
 
 procedure TExploreCard.miModelDetailsClick(Sender: TObject);
 begin
-  //
+  ShowMessage('Show model details here');
 end;
 
 procedure TExploreCard.miRunLocallyClick(Sender: TObject);
@@ -171,7 +173,10 @@ begin
   var LLogWindow := TStartModelLog.Create(Self);
   var LLogger := LLogWindow.Show(procedure() begin
     TThread.Queue(nil, procedure begin
-      ShowMessage('Open chat window');
+
+      SharedData.StartChatOffline(FModel.Id);
+
+      uMainForm.MainForm.ShowChat();
     end);
   end);
 
@@ -193,7 +198,7 @@ end;
 
 procedure TExploreCard.miRunOnlineClick(Sender: TObject);
 begin
-  //
+  ShowMessage('Start a new chat online here');
 end;
 
 end.

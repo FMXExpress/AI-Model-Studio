@@ -9,12 +9,15 @@ uses
   uReplicate in 'uReplicate.pas',
   uExploreCard in 'uExploreCard.pas' {ExploreCard: TFrame},
   uRunCommand in 'uRunCommand.pas',
-  uStartModelLog in 'uStartModelLog.pas' {StartModelLog};
+  uStartModelLog in 'uStartModelLog.pas' {StartModelLog},
+  uChatFrame in 'uChatFrame.pas' {ChatFrame: TFrame},
+  uSharedData in 'uSharedData.pas' {SharedData: TDataModule};
 
 {$R *.res}
 
 begin
   Application.Initialize;
+  Application.CreateForm(TSharedData, SharedData);
   Application.CreateForm(TMainForm, MainForm);
   Application.Run;
 end.
