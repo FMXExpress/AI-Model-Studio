@@ -26,7 +26,6 @@ type
     class function IsContainerRunning(
       const AModel: TModel): boolean; static;
 
-
     class procedure DeleteContainer(
       const AModel: TModel); static;
 

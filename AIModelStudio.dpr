@@ -12,7 +12,9 @@ uses
   uStartModel in 'uStartModel.pas' {StartModel},
   uChatFrame in 'uChatFrame.pas' {ChatFrame: TFrame},
   uSharedData in 'uSharedData.pas' {SharedData: TDataModule},
-  uDocker in 'uDocker.pas';
+  uDocker in 'uDocker.pas',
+  uChatCardFrame in 'chat\uChatCardFrame.pas' {ChatCardFrame: TFrame},
+  uChatUserTextCardFrame in 'chat\uChatUserTextCardFrame.pas' {ChatTextCardFrame: TFrame};
 
 {$R *.res}
 

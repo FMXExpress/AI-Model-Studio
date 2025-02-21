@@ -1,0 +1,12 @@
+object ChatCardFrame: TChatCardFrame
+  Size.Width = 355.000000000000000000
+  Size.Height = 274.000000000000000000
+  Size.PlatformDefault = False
+  object layCard: TLayout
+    Align = Client
+    Size.Width = 355.000000000000000000
+    Size.Height = 274.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+  end
+end

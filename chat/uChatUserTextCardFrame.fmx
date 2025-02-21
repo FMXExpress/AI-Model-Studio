@@ -1,0 +1,45 @@
+inherited ChatTextCardFrame: TChatTextCardFrame
+  Align = Top
+  Size.Width = 145.000000000000000000
+  Size.Height = 62.000000000000000000
+  OnResized = FrameResized
+  inherited layCard: TLayout
+    Align = Right
+    Size.Width = 145.000000000000000000
+    Size.Height = 62.000000000000000000
+    object recCard: TRectangle
+      Align = Client
+      Margins.Left = 10.000000000000000000
+      Margins.Top = 10.000000000000000000
+      Margins.Right = 10.000000000000000000
+      Margins.Bottom = 10.000000000000000000
+      Size.Width = 125.000000000000000000
+      Size.Height = 42.000000000000000000
+      Size.PlatformDefault = False
+      Stroke.Kind = None
+      XRadius = 14.000000000000000000
+      YRadius = 14.000000000000000000
+      object memText: TMemo
+        Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+        DataDetectorTypes = []
+        ReadOnly = True
+        ShowScrollBars = False
+        StyledSettings = [Family, Size, Style]
+        TextSettings.WordWrap = True
+        OnChangeTracking = memTextChangeTracking
+        Align = Client
+        Margins.Left = 8.000000000000000000
+        Margins.Top = 8.000000000000000000
+        Margins.Right = 8.000000000000000000
+        Margins.Bottom = 8.000000000000000000
+        Size.Width = 109.000000000000000000
+        Size.Height = 26.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 0
+        OnApplyStyleLookup = memTextApplyStyleLookup
+        Viewport.Width = 109.000000000000000000
+        Viewport.Height = 26.000000000000000000
+      end
+    end
+  end
+end

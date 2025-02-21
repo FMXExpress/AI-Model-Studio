@@ -98,6 +98,8 @@ begin
     if Memo1.Lines.Text.ToLower().Contains('error') then begin
       Done();
       ShowModal();
+      if ModalResult = mrOk then
+        LStartChat();
     end else
       LStartChat();
 
