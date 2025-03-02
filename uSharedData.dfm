@@ -113,7 +113,7 @@ object SharedData: TSharedData
   end
   object dsModelProject: TDataSource
     DataSet = mtChatModelProjects
-    Left = 240
+    Left = 296
     Top = 152
   end
   object FDStanStorageJSONLink1: TFDStanStorageJSONLink

@@ -9,6 +9,10 @@ uses
   FireDAC.Comp.DataSet, FireDAC.Comp.Client;
 
 type
+  TChatMode = (cmOnline, cmOffline);
+  TMessageRole = (mrSystem, mrUser, mrAssistant);
+  TDataType = (dtText, dtImage);
+
   TSharedData = class(TDataModule)
     mtChatModel: TFDMemTable;
     mtChatModelid: TStringField;
@@ -41,9 +45,9 @@ type
     function GenerateProjectName(): string;
     function StartChatOffline(
       const AModelId: string; const AName: string = ''): TGUID;
-  end;
 
-  TChatMode = (cmOnline, cmOffline);
+    function AddMessage(const AData: string; const ARole: TMessageRole): TGUID;
+  end;
 
 var
   SharedData: TSharedData;
@@ -56,6 +60,38 @@ uses
 {%CLASSGROUP 'FMX.Controls.TControl'}
 
 {$R *.dfm}
+
+function TSharedData.AddMessage(const AData: string;
+  const ARole: TMessageRole): TGUID;
+begin
+  Result := TGUID.NewGuid();
+
+  mtProjectChatMessages.Last();
+
+  var LSeq := 1;
+  if not mtProjectChatMessages.IsEmpty() then
+    LSeq := mtProjectChatMessagesseq.AsInteger + 1;
+
+  mtProjectChatMessages.Append();
+  mtProjectChatMessagesid.AsGuid := Result;
+  mtProjectChatMessagesseq.AsInteger := LSeq;
+
+  var LStream := TMemoryStream.Create();
+  try
+    LStream.Position := 0;
+
+    var LDataType := TDataType.dtText;
+    LStream.WriteBuffer(LDataType, SizeOf(TDataType));
+    LStream.WriteBuffer(AData[1], ByteLength(AData));
+
+    mtProjectChatMessagesdata.LoadFromStream(LStream);
+  finally
+    LStream.Free();
+  end;
+
+  mtProjectChatMessagesrole.AsInteger := Ord(ARole);
+  mtProjectChatMessages.Post();
+end;
 
 procedure TSharedData.DataModuleCreate(Sender: TObject);
 begin
@@ -107,7 +143,7 @@ end;
 
 procedure TSharedData.mtProjectChatMessagesNewRecord(DataSet: TDataSet);
 begin
-  mtProjectChatMessagesproject_id.Assign(mtChatModelProjectsmodel_id);
+  mtProjectChatMessagesproject_id.Assign(mtChatModelProjectsid);
 end;
 
 function TSharedData.GenerateProjectName: string;

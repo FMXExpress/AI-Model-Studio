@@ -29,7 +29,7 @@ type
       const ASerializer: TJsonSerializer); override;
 
     class function Convert(const AReader: TJsonReader;
-      const ATypeInf: PTypeInfo): TValue;
+      const ATypeInf: PTypeInfo; const ASerializer: TJsonSerializer): TValue;
   end;
 
   TAnyArrayConverter = class(TJsonConverter)
@@ -42,7 +42,7 @@ type
       const ASerializer: TJsonSerializer); override;
 
     class function Convert(const AReader: TJsonReader; 
-      const ATypeInf: PTypeInfo): TValue;
+      const ATypeInf: PTypeInfo; const ASerializer: TJsonSerializer): TValue;
   end;
   
   TDictConverter = class(TJsonConverter)
@@ -55,7 +55,7 @@ type
       const ASerializer: TJsonSerializer); override;
 
     class function Convert(const AReader: TJsonReader;
-      const ATypeInf: PTypeInfo): TValue;
+      const ATypeInf: PTypeInfo; const ASerializer: TJsonSerializer): TValue;
   end;
 
   TAny = TValue;
@@ -416,40 +416,39 @@ end;
 function TAnyConverter.ReadJson(const AReader: TJsonReader; ATypeInf: PTypeInfo;
   const AExistingValue: TValue; const ASerializer: TJsonSerializer): TValue;
 begin
-  Result := Convert(AReader, ATypeInf);  
+  Result := Convert(AReader, ATypeInf, ASerializer);
 end;
 
 procedure TAnyConverter.WriteJson(const AWriter: TJsonWriter;
   const AValue: TValue; const ASerializer: TJsonSerializer);
 begin
   inherited;
-
 end;
 
-class function TAnyConverter.Convert(const AReader: TJsonReader; 
-  const ATypeInf: PTypeInfo): TValue;
-  
+class function TAnyConverter.Convert(const AReader: TJsonReader;
+  const ATypeInf: PTypeInfo; const ASerializer: TJsonSerializer): TValue;
 begin
-  case AReader.TokenType of
-    TJsonToken.StartObject: begin
-      Result := TDictConverter.Convert(AReader, TypeInfo(TAny));
+  repeat
+    case AReader.TokenType of
+      TJsonToken.StartObject:
+        Exit(TDictConverter.Convert(AReader, nil, ASerializer));
+      TJsonToken.StartArray:
+        Exit(TAnyArrayConverter.Convert(AReader, nil, ASerializer));
+      TJsonToken.Integer,
+      TJsonToken.Float,
+      TJsonToken.String,
+      TJsonToken.Date,
+      TJsonToken.Bytes,
+      TJsonToken.Boolean:
+        Exit(AReader.Value);
+      TJsonToken.StartConstructor:
+        Exit(AReader.Value);
+      TJsonToken.Null,
+      TJsonToken.Undefined:
+        //AReader.Skip();
+        Exit(TValue.Empty);
     end;
-                              
-    TJsonToken.StartArray: begin
-      Result := TAnyArrayConverter.Convert(AReader, ATypeInf);       
-    end;    
-    TJsonToken.Decimal,
-    TJsonToken.Integer,
-    TJsonToken.Float,
-    TJsonToken.String,
-    TJsonToken.Boolean,
-    TJsonToken.Null,
-    TJsonToken.Date,
-    TJsonToken.Bytes: 
-      Result := AReader.Value;
-    else
-      Result := TValue.Empty;
-  end; 
+  until not AReader.Read();
 end;
 
 { TAnyArrayConverter }
@@ -463,7 +462,7 @@ function TAnyArrayConverter.ReadJson(const AReader: TJsonReader;
   ATypeInf: PTypeInfo; const AExistingValue: TValue;
   const ASerializer: TJsonSerializer): TValue;
 begin
-  Result := Convert(AReader, ATypeInf);
+  Result := Convert(AReader, ATypeInf, ASerializer);
 end;
 
 procedure TAnyArrayConverter.WriteJson(const AWriter: TJsonWriter;
@@ -473,23 +472,20 @@ begin
 end;
 
 class function TAnyArrayConverter.Convert(const AReader: TJsonReader;
-  const ATypeInf: PTypeInfo): TValue;
+  const ATypeInf: PTypeInfo; const ASerializer: TJsonSerializer): TValue;
 begin
   var LArray: TAnyArray := nil;
   
-  if (AReader.TokenType <> TJsonToken.StartArray) then
-    Exit(TValue.Empty);
-  
   while AReader.Read() do
     case AReader.TokenType of
-      TJsonToken.StartArray:
-        Continue;
       TJsonToken.EndArray:
         Break;
-      else if (AReader.CurrentState = TJsonReader.TState.PostValue) then begin
-        var LData := TAnyConverter.Convert(AReader, ATypeInf);
-
-        LArray := LArray + [LData];
+      TJsonToken.Comment:
+        // ignore
+      ;
+      else begin
+        LArray := LArray + [
+          TAnyConverter.Convert(AReader, nil, ASerializer)];
       end;
     end;
   
@@ -507,7 +503,7 @@ function TDictConverter.ReadJson(const AReader: TJsonReader;
   ATypeInf: PTypeInfo; const AExistingValue: TValue;
   const ASerializer: TJsonSerializer): TValue;
 begin
-  Result := Convert(AReader, ATypeInf);
+  Result := Convert(AReader, ATypeInf, ASerializer);
 end;
 
 procedure TDictConverter.WriteJson(const AWriter: TJsonWriter;
@@ -517,32 +513,29 @@ begin
 end;
 
 class function TDictConverter.Convert(const AReader: TJsonReader;
-  const ATypeInf: PTypeInfo): TValue;
+  const ATypeInf: PTypeInfo; const ASerializer: TJsonSerializer): TValue;
 begin
-  if (AReader.TokenType <> TJsonToken.StartObject) then
-    Exit(TValue.Empty);
-    
-  var LArray: TDict := nil;
-  
-  while AReader.Read() do
-    case AReader.TokenType of
-      TJsonToken.PropertyName: begin 
-        var LKey := AReader.Value.AsString;
-        AReader.Read();
-        var LValue := TAnyConverter.Convert(AReader, TypeInfo(TAny));
-                                 
-        LArray := LArray + [TDictPair.Create(LKey, LValue)];
-      end;
-      TJsonToken.EndObject:
-        Break;
-      else
-        Continue;        
-    end;  
-  
-  Result := TValue.From<TDict>(LArray);
 
-  if (AReader.TokenType <> TJsonToken.EndObject) then
-    raise Exception.Create('Error Message');
+  var LMakePair := function(): TDictPair begin
+    var LKey := AReader.Value.AsString;
+    var LValue := TAnyConverter.Convert(AReader, nil, ASerializer);
+    Result := TDictPair.Create(LKey, LValue);
+  end;
+
+  var LValues := TList<TDictPair>.Create();
+  try
+    while AReader.Read() do
+      case AReader.TokenType of
+        TJsonToken.PropertyName:
+          LValues.Add(LMakePair());
+        TJsonToken.EndObject:
+          Break;
+      end;
+
+    Result := TValue.From<TDict>(LValues.ToArray());
+  finally
+    LValues.Free();
+  end;
 end;
 
 { TVersion }
@@ -719,7 +712,8 @@ begin
     IfThen(ACursor.IsEmpty(), '/v1/models', ACursor),
     nil,
     procedure(AResponse: IHTTPResponse)
-    begin 
+    begin
+      TFile.WriteAllText('C:\Dev\Delphi\Projects\AI-Model-Studio\log.json', AResponse.ContentAsString());
       LResult := GlobalSerializer.Deserialize<TPage<TModel>>(
         AResponse.ContentAsString());
     end);
@@ -743,15 +737,15 @@ end;
 function TReplicateClient.TModels.Search(const AQuery: string): TPage<TModel>;
 begin
   var LResult := nil;
-  
+
   FClient.Request(
     'QUERY',
-    '/v1/models',    
+    '/v1/models',
     procedure(AClient: THttpClient; AContent: TStream)
     begin
       AClient.ContentType := 'text/plain';
 
-      var LBody := TEncoding.UTF8.GetBytes(AQuery);       
+      var LBody := TEncoding.UTF8.GetBytes(AQuery);
       AContent.WriteBuffer(LBody[0], Length(LBody));
     end,
     procedure(AResponse: IHTTPResponse)

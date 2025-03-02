@@ -14,7 +14,7 @@ uses
   uSharedData in 'uSharedData.pas' {SharedData: TDataModule},
   uDocker in 'uDocker.pas',
   uChatCardFrame in 'chat\uChatCardFrame.pas' {ChatCardFrame: TFrame},
-  uChatUserTextCardFrame in 'chat\uChatUserTextCardFrame.pas' {ChatTextCardFrame: TFrame};
+  uChatTextCardFrame in 'chat\uChatTextCardFrame.pas' {ChatTextCardFrame: TFrame};
 
 {$R *.res}
 

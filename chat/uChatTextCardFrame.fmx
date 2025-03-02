@@ -37,8 +37,8 @@ inherited ChatTextCardFrame: TChatTextCardFrame
         Size.PlatformDefault = False
         TabOrder = 0
         OnApplyStyleLookup = memTextApplyStyleLookup
-        Viewport.Width = 109.000000000000000000
-        Viewport.Height = 26.000000000000000000
+        Viewport.Width = 105.000000000000000000
+        Viewport.Height = 22.000000000000000000
       end
     end
   end

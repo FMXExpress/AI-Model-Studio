@@ -435,4 +435,10 @@ object ChatFrame: TChatFrame
       Track = True
     end
   end
+  object NetHTTPClient1: TNetHTTPClient
+    UserAgent = 'Embarcadero URI Client/1.0'
+    OnRequestCompleted = NetHTTPClient1RequestCompleted
+    Left = 80
+    Top = 360
+  end
 end

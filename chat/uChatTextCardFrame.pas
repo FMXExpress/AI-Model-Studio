@@ -1,4 +1,4 @@
-unit uChatUserTextCardFrame;
+unit uChatTextCardFrame;
 
 interface
 
@@ -21,7 +21,8 @@ type
     function GetExtraWidth(): single;
     procedure FitSize();
   public
-    class function New(const AText: string; const AContainer: TControl): TChatCardFrame; static;
+    class function NewUser(const AText: string; const AContainer: TControl): TChatCardFrame; static;
+    class function NewAssistant(const AText: string; const AContainer: TControl): TChatCardFrame; static;
   end;
 
 implementation
@@ -72,11 +73,24 @@ begin
   FitSize();
 end;
 
-class function TChatTextCardFrame.New(const AText: string;
+class function TChatTextCardFrame.NewAssistant(const AText: string;
   const AContainer: TControl): TChatCardFrame;
 begin
   Result := TChatTextCardFrame.Create(AContainer);
-  Result.Name := 'chattext_' + AContainer.ComponentCount.ToString();
+  Result.Name := 'assistant_chattext_' + AContainer.ComponentCount.ToString();
+  Result.Align := TAlignLayout.Bottom;
+  AContainer.AddObject(Result);
+  Result.Align := TAlignLayout.Top;
+
+  TChatTextCardFrame(Result).layCard.Align := TAlignLayout.Left;
+  TChatTextCardFrame(Result).memText.Lines.Add(AText);
+end;
+
+class function TChatTextCardFrame.NewUser(const AText: string;
+  const AContainer: TControl): TChatCardFrame;
+begin
+  Result := TChatTextCardFrame.Create(AContainer);
+  Result.Name := 'user_chattext_' + AContainer.ComponentCount.ToString();
   Result.Align := TAlignLayout.Bottom;
   AContainer.AddObject(Result);
   Result.Align := TAlignLayout.Top;
